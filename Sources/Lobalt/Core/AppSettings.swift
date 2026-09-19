@@ -114,7 +114,7 @@ final class AppSettings {
         showDockIcon = d.object(forKey: K.showDockIcon) as? Bool ?? true
         launchAtLogin = d.object(forKey: K.launchAtLogin) as? Bool ?? false
         hotkeysEnabled = d.object(forKey: K.hotkeysEnabled) as? Bool ?? true
-        presets = (d.array(forKey: K.presets) as? [Int]) ?? [5, 10, 15, 25, 45, 60]
+        presets = (d.array(forKey: K.presets) as? [Int]) ?? [1, 2, 3, 5, 10, 15, 25, 45]
         lastDuration = d.object(forKey: K.lastDuration) as? Int ?? 25 * 60
     }
 

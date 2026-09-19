@@ -70,13 +70,26 @@ enum Snapshot {
         write(OverlayView().environment(state), dir, "overlay-calm")
 
         // 5 — the full-screen layout, caught on the beat
+        func fullScreen(hovering: Bool) -> some View {
+            MainView()
+                .environment(state)
+                .environment(\.lobaltSnapshotFullScreen, true)
+                .environment(\.lobaltSnapshotHoverControls, hovering)
+                .frame(width: 1440, height: 900)
+        }
+
         engine.start(seconds: 25 * 60, label: "Write the launch post")
         engine.triggerPulse(strength: 1.0)
         holdUntilPeak()
-        write(MainView().environment(state).frame(width: 1440, height: 900), dir, "fullscreen-pulse")
+        write(fullScreen(hovering: false), dir, "fullscreen-pulse")
 
         engine.start(seconds: 25 * 60, label: "Write the launch post")
-        write(MainView().environment(state).frame(width: 1440, height: 900), dir, "fullscreen-calm")
+        write(fullScreen(hovering: false), dir, "fullscreen-calm")
+        write(fullScreen(hovering: true), dir, "fullscreen-hover")
+
+        engine.stop()
+        engine.preset(seconds: 25 * 60)
+        write(fullScreen(hovering: true), dir, "fullscreen-idle-hover")
 
         // 6 — menu bar popover
         write(MenuPanelView().environment(state), dir, "menu-panel")

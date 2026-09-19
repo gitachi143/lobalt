@@ -114,7 +114,7 @@ struct HistoryView: View {
                 .foregroundStyle(.tertiary)
             Text("No sessions yet")
                 .font(Theme.label(13, weight: .medium))
-            Text("Timers you run for at least twenty seconds show up here.")
+            Text("Timers you run for at least twenty seconds show up here.\nDouble-click a name later to change it.")
                 .font(Theme.label(11))
                 .foregroundStyle(.secondary)
         }
@@ -126,6 +126,9 @@ private struct SessionRow: View {
     @Environment(AppState.self) private var app
     let session: Session
     @State private var hovering = false
+    @State private var editing = false
+    @State private var draft = ""
+    @FocusState private var fieldFocused: Bool
 
     private var overColor: Color {
         if !session.completed { return .secondary }
@@ -148,9 +151,24 @@ private struct SessionRow: View {
                 .frame(width: 6, height: 6)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(session.label)
-                    .font(Theme.label(12, weight: .medium))
-                    .lineLimit(1)
+                if editing {
+                    TextField("Name this session", text: $draft)
+                        .textFieldStyle(.roundedBorder)
+                        .font(Theme.label(12, weight: .medium))
+                        .focused($fieldFocused)
+                        .onSubmit(commit)
+                        // Clicking away is a commit, not a cancel — losing the
+                        // rename because you clicked the next row would be worse
+                        // than the occasional accidental save.
+                        .onChange(of: fieldFocused) { _, focused in
+                            if !focused { commit() }
+                        }
+                } else {
+                    Text(session.label)
+                        .font(Theme.label(12, weight: .medium))
+                        .lineLimit(1)
+                        .onTapGesture(count: 2, perform: beginEditing)
+                }
                 Text(timeRange)
                     .font(Theme.label(10))
                     .foregroundStyle(.tertiary)
@@ -167,7 +185,13 @@ private struct SessionRow: View {
                 .foregroundStyle(overColor)
                 .frame(width: 78, alignment: .trailing)
 
-            if hovering {
+            if hovering, !editing {
+                Button(action: beginEditing) {
+                    Image(systemName: "pencil")
+                }
+                .buttonStyle(.borderless)
+                .help("Rename this session")
+
                 Button {
                     app.start(seconds: Int(session.planned), label: session.label)
                 } label: {
@@ -182,9 +206,22 @@ private struct SessionRow: View {
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .contextMenu {
+            Button("Rename…", action: beginEditing)
             Button("Run again") { app.start(seconds: Int(session.planned), label: session.label) }
             Button("Delete", role: .destructive) { app.store.delete(session) }
         }
+    }
+
+    private func beginEditing() {
+        draft = session.label == "Untitled" ? "" : session.label
+        editing = true
+        fieldFocused = true
+    }
+
+    private func commit() {
+        guard editing else { return }
+        editing = false
+        app.store.rename(session, to: draft)
     }
 
     private var timeRange: String {

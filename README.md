@@ -28,8 +28,11 @@ sits there being a timer.
 
 ![Lobalt between beats](docs/fullscreen-calm.png)
 
-Full screen gives the ring the whole display, and the controls fade out after a
-few seconds until you move the mouse.
+Full screen gives the ring the whole display. The controls float over the
+bottom rather than sitting in the layout — laying them out in the flow would
+mean the timer shrank every time you moved the mouse — and they fade away after
+a few seconds. Point at them and everything in the bar grows, so you can hit it
+from across the room.
 
 ## Where it lives
 
@@ -65,6 +68,12 @@ Everything above also works typed, in the field at the bottom of the window —
 `25m write the essay`, `1h30 deep work`, `45`. A live read-back shows what it
 understood before you commit.
 
+## Starting one
+
+Preset chips run from one minute upward, and a **custom** chip jumps to the
+type-in field for anything else. Name a session by clicking the line inside the
+ring — before you pick a length or after it has started, either works.
+
 ## The rest of it
 
 - **Counts past zero.** When time is up it keeps going in red, so you find out
@@ -72,7 +81,9 @@ understood before you commit.
   overrun accrues — a full second lap means you took twice as long as you gave
   yourself.
 - **Learns how you estimate.** Every session is logged, and the history window
-  tells you whether you habitually run over or under.
+  tells you whether you habitually run over or under. Double-click any past
+  name to change it, for when you started a timer in a hurry and only worked
+  out what it was afterwards.
   ![Overtime](docs/main-overtime.png)
 - **Menu bar countdown**, with a popover holding the full set of controls.
   ![Menu bar popover](docs/menu-panel.png)

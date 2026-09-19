@@ -45,7 +45,7 @@ private struct GeneralSettings: View {
             Section {
                 TextField("Presets (minutes)", text: $presetText)
                     .onSubmit(commitPresets)
-                Text("Comma separated, e.g. 5, 15, 25, 50")
+                Text("Comma separated, e.g. 1, 2, 3, 5, 25. A “custom” chip next to them jumps to the type-in field.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: { Text("Quick presets") }
@@ -78,7 +78,7 @@ private struct GeneralSettings: View {
             presetText = app.settings.presets.map(String.init).joined(separator: ", ")
             return
         }
-        app.settings.presets = Array(values.prefix(8))
+        app.settings.presets = Array(values.prefix(10))
         presetText = app.settings.presets.map(String.init).joined(separator: ", ")
     }
 

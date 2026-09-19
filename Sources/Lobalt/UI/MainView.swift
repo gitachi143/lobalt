@@ -10,6 +10,12 @@ struct MainView: View {
     @State private var chromeVisible = true
     @State private var chromeTimer: Timer?
     @State private var isFullScreen = false
+    @State private var controlsHovered = false
+    @Environment(\.lobaltSnapshotFullScreen) private var forcedFullScreen
+    @Environment(\.lobaltSnapshotHoverControls) private var forcedHover
+
+    private var fullScreen: Bool { isFullScreen || forcedFullScreen }
+    private var controlsExpanded: Bool { controlsHovered || forcedHover }
     @FocusState private var quickFocused: Bool
     @FocusState private var labelFocused: Bool
 
@@ -24,45 +30,15 @@ struct MainView: View {
             ZStack {
                 background(pulse: pulse)
 
-                VStack(spacing: 0) {
-                    header
-                        .opacity(chromeVisible ? 1 : 0)
-                        .allowsHitTesting(chromeVisible)
-
-                    Spacer(minLength: 8)
-
-                    TimerFace(ringSize: ringSize, pulse: pulse, reduceMotion: reduceMotion,
-                              labelFocused: $labelFocused)
-
-                    Spacer(minLength: 8)
-
-                    VStack(spacing: compact ? 10 : 16) {
-                        ControlRow(compact: compact, pulse: pulse,
-                                   big: geo.size.width >= 1000 && geo.size.height >= 760)
-
-                        if engine.phase == .idle && !compact {
-                            PresetRow()
-                        }
-                        if !compact {
-                            QuickEntryField(text: $quickEntry, focused: $quickFocused)
-                        }
-                        MessageLine()
-                    }
-                    .opacity(chromeVisible ? 1 : 0)
-                    .allowsHitTesting(chromeVisible)
-
-                    if !compact {
-                        StatsFooter()
-                            .opacity(chromeVisible ? 0.85 : 0)
-                            .padding(.top, 10)
-                    }
+                if fullScreen {
+                    fullScreenLayout(ringSize: ringSize, pulse: pulse)
+                } else {
+                    windowedLayout(geo: geo, compact: compact, ringSize: ringSize, pulse: pulse)
                 }
-                .padding(.horizontal, compact ? 16 : 28)
-                .padding(.top, compact ? 10 : 14)
-                .padding(.bottom, compact ? 12 : 18)
             }
             .animation(.easeInOut(duration: 0.35), value: chromeVisible)
-        .animation(.easeInOut(duration: 0.4), value: isFullScreen)
+            .animation(.easeInOut(duration: 0.4), value: fullScreen)
+            .animation(.spring(response: 0.3, dampingFraction: 0.75), value: controlsExpanded)
             .animation(.easeOut(duration: 0.2), value: engine.phase)
         }
         .frame(minWidth: 360, minHeight: 380)
@@ -87,6 +63,115 @@ struct MainView: View {
         .background(KeyWindowAccessor())
     }
 
+    // MARK: - Layouts
+
+    /// Normal window: everything stacked, the ring taking what's left over.
+    private func windowedLayout(geo: GeometryProxy, compact: Bool,
+                                ringSize: CGFloat, pulse: Double) -> some View {
+        VStack(spacing: 0) {
+            header
+                .opacity(chromeVisible ? 1 : 0)
+                .allowsHitTesting(chromeVisible)
+
+            Spacer(minLength: 8)
+
+            TimerFace(ringSize: ringSize, pulse: pulse, reduceMotion: reduceMotion,
+                      labelFocused: $labelFocused)
+
+            Spacer(minLength: 8)
+
+            VStack(spacing: compact ? 10 : 16) {
+                ControlRow(compact: compact, pulse: pulse,
+                           scale: geo.size.width >= 1000 && geo.size.height >= 760 ? 1.3 : 1)
+
+                if engine.phase == .idle && !compact {
+                    PresetRow(quickFocused: $quickFocused)
+                }
+                if !compact {
+                    QuickEntryField(text: $quickEntry, focused: $quickFocused)
+                }
+                MessageLine()
+            }
+            .opacity(chromeVisible ? 1 : 0)
+            .allowsHitTesting(chromeVisible)
+
+            if !compact {
+                StatsFooter()
+                    .opacity(chromeVisible ? 0.85 : 0)
+                    .padding(.top, 10)
+            }
+        }
+        .padding(.horizontal, compact ? 16 : 28)
+        .padding(.top, compact ? 10 : 14)
+        .padding(.bottom, compact ? 12 : 18)
+    }
+
+    /// Full screen: the ring is the point, so it keeps a constant, large size
+    /// and the controls float over it. Laying them out in the flow would mean
+    /// the timer shrank every time you moved the mouse.
+    private func fullScreenLayout(ringSize: CGFloat, pulse: Double) -> some View {
+        ZStack {
+            // Nudged up so the task name clears the control bar that floats
+            // over the bottom. Constant rather than tied to the bar being
+            // visible, so nothing jumps when it fades in.
+            TimerFace(ringSize: ringSize, pulse: pulse, reduceMotion: reduceMotion,
+                      labelFocused: $labelFocused)
+                // A nudge up, so the task name inside the ring clears the bar
+                // floating over the bottom. Constant, so nothing jumps when
+                // the bar fades in.
+                .offset(y: -ringSize * 0.03)
+
+            VStack(spacing: 0) {
+                header
+                Spacer(minLength: 0)
+                floatingControls(pulse: pulse)
+            }
+            .padding(.horizontal, 34)
+            .padding(.vertical, 22)
+            .opacity(chromeVisible ? 1 : 0)
+            .allowsHitTesting(chromeVisible)
+        }
+    }
+
+    /// The control bar that hovers over the bottom of the full-screen timer.
+    /// Pointing at it makes everything in it grow.
+    private func floatingControls(pulse: Double) -> some View {
+        let scale: CGFloat = controlsExpanded ? 1.9 : 1.5
+
+        // Two rows rather than three: every extra row pushes the bar further
+        // up the screen and eats into how big the ring is allowed to be.
+        return VStack(spacing: 14) {
+            ControlRow(compact: false, pulse: pulse, scale: scale)
+
+            HStack(spacing: 12) {
+                if engine.phase == .idle {
+                    PresetRow(quickFocused: $quickFocused, scale: controlsExpanded ? 1.3 : 1.1)
+                }
+                QuickEntryField(text: $quickEntry, focused: $quickFocused)
+                    .frame(width: 260)
+            }
+
+            MessageLine()
+        }
+        .padding(.horizontal, 28)
+        .padding(.vertical, 18)
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .fill(Palette.canvas.opacity(0.55))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .strokeBorder(Palette.hairline, lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.4), radius: 24, y: 10)
+        )
+        .fixedSize()
+        .onHover { controlsHovered = $0 }
+    }
+
     // MARK: - Pieces
 
     /// Full screen exists to make the timer the only thing on the display, so
@@ -94,11 +179,13 @@ struct MainView: View {
     /// again once the chrome fades out. A merely very large window gets the
     /// same treatment — the space is there either way.
     private func ringSize(for size: CGSize, compact: Bool) -> CGFloat {
-        let expansive = isFullScreen || (size.width >= 1000 && size.height >= 760)
-        if expansive {
-            let heightShare = (isFullScreen && !chromeVisible) ? 0.82 : 0.62
-            let candidate = min(size.width * 0.74, size.height * heightShare)
-            return max(300, min(candidate, 1100))
+        if fullScreen {
+            // Deliberately independent of whether the controls are showing —
+            // they float above rather than competing for the space.
+            return max(300, min(min(size.width * 0.66, size.height * 0.88), 1250))
+        }
+        if size.width >= 1000 && size.height >= 760 {
+            return max(300, min(min(size.width * 0.74, size.height * 0.62), 1100))
         }
         let candidate = min(size.width * 0.62, size.height * (compact ? 0.52 : 0.55))
         return max(150, min(candidate, 560))
@@ -153,7 +240,11 @@ struct MainView: View {
         // window the controls staying put is less jarring than them vanishing.
         guard NSApp.keyWindow?.styleMask.contains(.fullScreen) == true else { return }
         chromeTimer = Timer.scheduledTimer(withTimeInterval: 2.8, repeats: false) { _ in
-            DispatchQueue.main.async { chromeVisible = false }
+            DispatchQueue.main.async {
+                // Never pull the controls out from under the pointer.
+                guard !controlsHovered, !quickFocused, !labelFocused else { return }
+                chromeVisible = false
+            }
         }
     }
 }
@@ -169,6 +260,15 @@ private struct TimerFace: View {
 
     private var engine: TimerEngine { app.engine }
 
+    /// One line under the clock: where it lands, or how long it is set for.
+    private var subtitle: String {
+        if engine.phase == .running, !engine.isOvertime {
+            return "ends \(TimeFormat.endsAt(engine.remaining))"
+        }
+        if engine.phase == .idle { return TimeFormat.humane(engine.plannedDuration) }
+        return ""
+    }
+
     var body: some View {
         let color = Theme.timeColor(remaining: engine.remaining, planned: engine.plannedDuration)
         let tinted = Theme.pulseDigitTint(color, pulse: pulse)
@@ -182,11 +282,14 @@ private struct TimerFace: View {
                       reduceMotion: reduceMotion)
                 .frame(width: ringSize, height: ringSize)
 
+            // Every row is always present, hidden with opacity rather than
+            // an `if`. A changing child list re-identifies the text field at
+            // the bottom, which drops the name you were part-way through
+            // typing the moment the timer starts or crosses into overtime.
             VStack(spacing: ringSize * 0.028) {
-                if engine.phase != .running || engine.isOvertime {
-                    StatusChip(text: app.statusText, color: app.statusColor,
-                               size: max(9, ringSize * 0.032))
-                }
+                StatusChip(text: app.statusText, color: app.statusColor,
+                           size: max(9, ringSize * 0.032))
+                    .opacity(engine.phase != .running || engine.isOvertime ? 1 : 0)
 
                 Text(engine.displayTime)
                     .font(Theme.digits(ringSize * 0.255, weight: .semibold))
@@ -194,15 +297,10 @@ private struct TimerFace: View {
                     .contentTransition(.numericText(countsDown: true))
                     .animation(.easeOut(duration: 0.18), value: engine.displayTime)
 
-                if engine.phase == .running, !engine.isOvertime {
-                    Text("ends \(TimeFormat.endsAt(engine.remaining))")
-                        .font(Theme.label(max(9, ringSize * 0.042)))
-                        .foregroundStyle(Palette.tertiaryText)
-                } else if engine.phase == .idle {
-                    Text(TimeFormat.humane(engine.plannedDuration))
-                        .font(Theme.label(max(9, ringSize * 0.042)))
-                        .foregroundStyle(Palette.tertiaryText)
-                }
+                Text(subtitle)
+                    .font(Theme.label(max(9, ringSize * 0.042)))
+                    .foregroundStyle(Palette.tertiaryText)
+                    .opacity(subtitle.isEmpty ? 0 : 1)
 
                 LabelField(focused: $labelFocused, fontSize: max(11, ringSize * 0.055))
                     .frame(maxWidth: ringSize * 0.78)
@@ -257,19 +355,20 @@ private struct ControlRow: View {
     @Environment(AppState.self) private var app
     var compact: Bool
     var pulse: Double = 0
-    /// Full screen gets chunkier controls to match the larger ring.
-    var big: Bool = false
+    /// Multiplier on the control sizes. Full screen runs them large, and
+    /// larger again while the pointer is over them.
+    var scale: CGFloat = 1
 
     private var engine: TimerEngine { app.engine }
-    private var primary: CGFloat { compact ? 42 : (big ? 76 : 54) }
-    private var secondary: CGFloat { compact ? 32 : (big ? 52 : 38) }
+    private var primary: CGFloat { (compact ? 42 : 54) * scale }
+    private var secondary: CGFloat { (compact ? 32 : 38) * scale }
 
     /// The primary control swells hardest; the rest just lean in.
     private let primaryGrowth = 0.26
     private let secondaryGrowth = 0.12
 
     var body: some View {
-        HStack(spacing: compact ? 10 : 14) {
+        HStack(spacing: (compact ? 10 : 14) * scale) {
             switch engine.phase {
             case .idle:
                 VoiceButton(diameter: secondary, pulse: pulse, growth: secondaryGrowth)
@@ -334,27 +433,38 @@ private struct ControlRow: View {
 
 private struct PresetRow: View {
     @Environment(AppState.self) private var app
+    /// Focused by the "custom" chip, which is just a shortcut to typing.
+    @FocusState.Binding var quickFocused: Bool
+    var scale: CGFloat = 1
 
     var body: some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 6 * scale) {
             ForEach(app.settings.presets, id: \.self) { minutes in
-                Button {
+                chip(String(minutes), help: "Start a \(minutes) minute timer") {
                     app.startPreset(minutes: minutes)
-                } label: {
-                    Text("\(minutes)")
-                        .font(Theme.digits(13, weight: .medium))
-                        .foregroundStyle(Palette.secondaryText)
-                        .frame(minWidth: 34)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(Color.white.opacity(0.07))
-                        )
                 }
-                .buttonStyle(.plain)
-                .help("Start a \(minutes) minute timer")
+            }
+            chip("custom", help: "Type any length, e.g. 7m or 1h30") {
+                quickFocused = true
             }
         }
+    }
+
+    private func chip(_ text: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(text)
+                .font(Theme.digits(13 * scale, weight: .medium))
+                .foregroundStyle(Palette.secondaryText)
+                .frame(minWidth: 28 * scale)
+                .padding(.horizontal, 6 * scale)
+                .padding(.vertical, 6 * scale)
+                .background(
+                    RoundedRectangle(cornerRadius: 8 * scale, style: .continuous)
+                        .fill(Color.white.opacity(0.07))
+                )
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 }
 

@@ -80,6 +80,24 @@ public final class SessionStore {
         save()
     }
 
+    /// Rename a past session. Useful when you started a timer in a hurry and
+    /// only worked out what it was afterwards.
+    @discardableResult
+    public func rename(_ session: Session, to newLabel: String) -> Bool {
+        guard let index = sessions.firstIndex(where: { $0.id == session.id }) else { return false }
+        let trimmed = newLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        let existing = sessions[index]
+        sessions[index] = Session(id: existing.id,
+                                  label: trimmed.isEmpty ? "Untitled" : trimmed,
+                                  planned: existing.planned,
+                                  actual: existing.actual,
+                                  startedAt: existing.startedAt,
+                                  endedAt: existing.endedAt,
+                                  completed: existing.completed)
+        save()
+        return true
+    }
+
     public func delete(_ session: Session) {
         sessions.removeAll { $0.id == session.id }
         save()

@@ -192,6 +192,31 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertEqual(recent.first?.planned, 1200, "keeps the most recent length for a repeated task")
     }
 
+    func testRenamePersists() {
+        let url = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("lobalt-test-\(UUID().uuidString).json")
+        let store = SessionStore(url: url)
+        store.add(session(label: "Untitled", planned: 600, actual: 640))
+        let target = store.sessions[0]
+        XCTAssertTrue(store.rename(target, to: "  Draft the brief  "))
+        XCTAssertEqual(store.sessions[0].label, "Draft the brief", "trims surrounding space")
+        XCTAssertEqual(SessionStore(url: url).sessions[0].label, "Draft the brief", "survives a reload")
+    }
+
+    func testRenameToNothingFallsBackToUntitled() {
+        let store = tempStore()
+        store.add(session(label: "Something", planned: 600, actual: 640))
+        store.rename(store.sessions[0], to: "   ")
+        XCTAssertEqual(store.sessions[0].label, "Untitled")
+    }
+
+    func testRenameUnknownSessionIsIgnored() {
+        let store = tempStore()
+        let stranger = session(label: "Ghost", planned: 60, actual: 60)
+        XCTAssertFalse(store.rename(stranger, to: "Nope"))
+        XCTAssertTrue(store.sessions.isEmpty)
+    }
+
     func testLimitTrimsOldest() {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("lobalt-test-\(UUID().uuidString).json")

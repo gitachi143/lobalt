@@ -121,10 +121,23 @@ enum Theme {
 /// AppKit-backed text fields, so those swap to static text that matches their
 /// resting appearance. Nothing else about the layout changes.
 private struct SnapshotModeKey: EnvironmentKey { static let defaultValue = false }
+/// Forces the full-screen arrangement, which is otherwise driven by window
+/// notifications and so can't be reached from an offscreen render.
+private struct SnapshotFullScreenKey: EnvironmentKey { static let defaultValue = false }
+/// Forces the pointer-over-the-controls state, likewise.
+private struct SnapshotHoverKey: EnvironmentKey { static let defaultValue = false }
 
 extension EnvironmentValues {
     var lobaltSnapshotMode: Bool {
         get { self[SnapshotModeKey.self] }
         set { self[SnapshotModeKey.self] = newValue }
+    }
+    var lobaltSnapshotFullScreen: Bool {
+        get { self[SnapshotFullScreenKey.self] }
+        set { self[SnapshotFullScreenKey.self] = newValue }
+    }
+    var lobaltSnapshotHoverControls: Bool {
+        get { self[SnapshotHoverKey.self] }
+        set { self[SnapshotHoverKey.self] = newValue }
     }
 }

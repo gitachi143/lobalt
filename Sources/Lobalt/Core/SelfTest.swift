@@ -170,6 +170,36 @@ enum SelfTest {
         state.submitQuickEntry("pause")
         check("typed transport command works", state.engine.phase == .paused)
 
+        // --- Naming ------------------------------------------------------
+        // Both orders have to work: name it then pick a length, or pick a
+        // length then name it.
+        print("naming")
+        state.engine.stop()
+        state.engine.label = "Write the essay"
+        state.startPreset(minutes: 25)
+        check("a name typed before picking a duration survives",
+              state.engine.label == "Write the essay", "got “\(state.engine.label)”")
+        check("and the duration still applies", Int(state.engine.plannedDuration) == 1500)
+
+        state.engine.label = "Renamed while running"
+        check("renaming a running timer sticks", state.engine.label == "Renamed while running")
+        state.addMinutes(5)
+        check("the name survives adding time", state.engine.label == "Renamed while running")
+        state.engine.pause()
+        state.engine.resume()
+        check("the name survives pause and resume", state.engine.label == "Renamed while running")
+
+        // --- History ------------------------------------------------------
+        print("history")
+        let logged = Session(label: "Untitled", planned: 600, actual: 640,
+                             startedAt: Date().addingTimeInterval(-640), endedAt: Date(),
+                             completed: true)
+        state.store.add(logged)
+        state.store.rename(logged, to: "Named afterwards")
+        check("a past session can be renamed",
+              state.store.sessions.last?.label == "Named afterwards",
+              "got “\(state.store.sessions.last?.label ?? "nil")”")
+
         state.engine.stop()
         print(failures == 0 ? "\nall checks passed" : "\n\(failures) check(s) failed")
         return failures
