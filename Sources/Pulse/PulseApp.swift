@@ -70,17 +70,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Both developer flags run against scratch state, never the real
         // preferences or session history.
         if let dir = Snapshot.requestedDirectory() {
-            let (scratch, suite) = Snapshot.scratchState()
-            Snapshot.run(into: dir, state: scratch)
-            Snapshot.discard(suite)
+            Snapshot.run(into: dir, state: Snapshot.scratchState())
             NSApp.terminate(nil)
             return
         }
         if SelfTest.wasRequested {
-            let (scratch, suite) = Snapshot.scratchState()
-            let failures = SelfTest.run(state: scratch)
-            Snapshot.discard(suite)
-            exit(Int32(failures))
+            exit(Int32(SelfTest.run(state: Snapshot.scratchState())))
         }
         NSApp.setActivationPolicy(state.settings.showDockIcon ? .regular : .accessory)
 
@@ -132,6 +127,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // target — see `WindowRegistry.adopt`.
         guard let window = WindowRegistry.shared.mainWindow else { return }
         if window.isMiniaturized { window.deminiaturize(nil) }
+        WindowRegistry.moveOnScreenIfNeeded(window)
         window.makeKeyAndOrderFront(nil)
     }
 

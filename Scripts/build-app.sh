@@ -1,8 +1,9 @@
 #!/bin/bash
 # Builds Pulse.app — a real, double-clickable macOS bundle.
 #
-#   ./Scripts/build-app.sh            release build into ./build
-#   ./Scripts/build-app.sh --install  also copy it into /Applications
+#   ./Scripts/build-app.sh                    release build into ./build
+#   ./Scripts/build-app.sh --install          also copy it into /Applications
+#   ./Scripts/build-app.sh --install ~/Desktop   ...or wherever you keep it
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -84,12 +85,18 @@ codesign --verify --verbose=1 "$APP" 2>&1 | sed 's/^/    /'
 echo "==> Built $APP"
 
 if [[ "${1:-}" == "--install" ]]; then
-  DEST="/Applications/$APP_NAME.app"
+  INSTALL_DIR="${2:-/Applications}"
+  INSTALL_DIR="${INSTALL_DIR%/}"
+  if [[ ! -d "$INSTALL_DIR" ]]; then
+    echo "!! $INSTALL_DIR does not exist" >&2
+    exit 1
+  fi
+  DEST="$INSTALL_DIR/$APP_NAME.app"
   echo "==> Installing to $DEST"
   # Quit a running copy so the replacement isn't left in a half state.
   osascript -e "tell application \"$APP_NAME\" to quit" 2>/dev/null || true
   sleep 1
   rm -rf "$DEST"
   cp -R "$APP" "$DEST"
-  echo "==> Installed. Open it from Spotlight or /Applications."
+  echo "==> Installed at $DEST"
 fi

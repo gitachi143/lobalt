@@ -14,6 +14,9 @@ enum Palette {
     static let urgent = Color(red: 0.941, green: 0.392, blue: 0.286) // coral
     static let over = Color(red: 1.000, green: 0.231, blue: 0.188)   // red
     static let pulse = Color(red: 1.000, green: 0.271, blue: 0.208)
+    /// Deep, saturated red for flooding a whole surface. Bright red across
+    /// that much area swamps the digits; this keeps them legible through it.
+    static let impact = Color(red: 0.460, green: 0.035, blue: 0.030)
 
     static let primaryText = Color.white.opacity(0.95)
     static let secondaryText = Color.white.opacity(0.55)
@@ -80,6 +83,21 @@ enum Theme {
         return a <= 0.5
             ? base.blended(with: mid, amount: a * 2)
             : mid.blended(with: Palette.pulse, amount: (a - 0.5) * 2)
+    }
+
+    /// Tint for the digits themselves.
+    ///
+    /// The surface behind them floods red on the beat, so matching it would
+    /// leave the time unreadable exactly when it is being drawn attention to.
+    /// Past the midpoint the digits keep heating past red into white-hot,
+    /// which holds contrast against the flood and reads as the hottest thing
+    /// on screen.
+    static func pulseDigitTint(_ base: Color, pulse: Double) -> Color {
+        let hot = pulseTint(base, pulse: pulse)
+        let a = min(1, pow(pulse, 0.45) * 1.2)
+        guard a > 0.45 else { return hot }
+        let whiteHot = Color(red: 1.0, green: 0.95, blue: 0.92)
+        return hot.blended(with: whiteHot, amount: (a - 0.45) / 0.55 * 0.88)
     }
 
     /// Current glow from the once-a-minute pulse, already scaled by the

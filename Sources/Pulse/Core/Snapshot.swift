@@ -14,18 +14,15 @@ enum Snapshot {
         return args[i + 1]
     }
 
-    /// Builds an `AppState` backed by throwaway preferences and a throwaway
-    /// session log, so rendering docs never touches real history.
-    static func scratchState() -> (AppState, String) {
-        let suite = "com.gitachi.Pulse.scratch.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite) ?? .standard
+    /// An `AppState` backed by in-memory preferences and a throwaway session
+    /// log, so the tooling never reads or writes the real ones.
+    ///
+    /// A named `UserDefaults` suite isn't good enough here: the process writes
+    /// it back out as it exits, leaving a plist behind on every run.
+    static func scratchState() -> AppState {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("pulse-scratch-\(UUID().uuidString).json")
-        return (AppState(defaults: defaults, storeURL: url), suite)
-    }
-
-    static func discard(_ suite: String) {
-        UserDefaults.standard.removePersistentDomain(forName: suite)
+        return AppState(defaults: MemorySettingsStore(), storeURL: url)
     }
 
     static func run(into directory: String, state: AppState) {
@@ -72,10 +69,19 @@ enum Snapshot {
         engine.start(seconds: 25 * 60, label: "Write the launch post")
         write(OverlayView().environment(state), dir, "overlay-calm")
 
-        // 5 — menu bar popover
+        // 5 — the full-screen layout, caught on the beat
+        engine.start(seconds: 25 * 60, label: "Write the launch post")
+        engine.triggerPulse(strength: 1.0)
+        holdUntilPeak()
+        write(MainView().environment(state).frame(width: 1440, height: 900), dir, "fullscreen-pulse")
+
+        engine.start(seconds: 25 * 60, label: "Write the launch post")
+        write(MainView().environment(state).frame(width: 1440, height: 900), dir, "fullscreen-calm")
+
+        // 6 — menu bar popover
         write(MenuPanelView().environment(state), dir, "menu-panel")
 
-        // 6 — past the estimate
+        // 7 — past the estimate
         engine.start(seconds: 1, label: "Review the PR")
         Thread.sleep(forTimeInterval: 1.4)
         engine.refresh()

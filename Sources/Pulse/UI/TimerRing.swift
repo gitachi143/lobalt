@@ -71,29 +71,32 @@ struct PulseBackdrop: View {
     }
 }
 
-/// Whole-window version of the pulse: dark in the middle, warm at the edges.
+/// Whole-window version of the pulse.
 ///
-/// Sized off the window so it always reads as a vignette. A blurred border
-/// stroke would bleed into the centre on a narrow window and wash the whole
-/// thing out.
-struct PulseVignette: View {
+/// The entire surface turns over at once rather than just warming at the
+/// edges — that is what makes the minute land as an impact instead of a
+/// gradient. A hotter rim on top stops it reading as a flat colour swap.
+struct PulseImpact: View {
     var pulse: Double
 
     var body: some View {
         GeometryReader { geo in
-            let reach = max(geo.size.width, geo.size.height) * 0.78
-            RadialGradient(
-                gradient: Gradient(stops: [
-                    .init(color: .clear, location: 0.32),
-                    .init(color: Palette.pulse.opacity(0.30), location: 0.72),
-                    .init(color: Palette.pulse.opacity(0.62), location: 1.0),
-                ]),
-                center: .center,
-                startRadius: 0,
-                endRadius: reach
-            )
-            .opacity(pulse)
-            .blendMode(.plusLighter)
+            let reach = max(geo.size.width, geo.size.height) * 0.80
+            ZStack {
+                Palette.impact.opacity(pulse * 0.80)
+                RadialGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: .clear, location: 0.12),
+                        .init(color: Palette.pulse.opacity(0.26), location: 0.60),
+                        .init(color: Palette.pulse.opacity(0.72), location: 1.0),
+                    ]),
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: reach
+                )
+                .opacity(pulse)
+                .blendMode(.plusLighter)
+            }
         }
         .allowsHitTesting(false)
     }
@@ -126,6 +129,10 @@ struct RoundIconButton: View {
     var tint: Color = Palette.primaryText
     var fill: Color = Color.white.opacity(0.09)
     var prominent: Bool = false
+    /// Current minute-pulse intensity, 0…1.
+    var pulse: Double = 0
+    /// How much the button swells at full pulse. 0 opts out entirely.
+    var growth: Double = 0
     var help: String = ""
     var action: () -> Void
 
@@ -134,13 +141,35 @@ struct RoundIconButton: View {
     var body: some View {
         Button(action: action) {
             ZStack {
+                if pulse > 0.01 {
+                    // Bloom spilling out past the edge of the button.
+                    Circle()
+                        .fill(Palette.pulse)
+                        .frame(width: diameter, height: diameter)
+                        .blur(radius: diameter * 0.40)
+                        .scaleEffect(1.55)
+                        .opacity(pulse * 0.85)
+                }
+
                 Circle()
                     .fill(prominent ? tint.opacity(hovering ? 1 : 0.9) : fill.opacity(hovering ? 1.9 : 1))
+
+                // Washes the face itself red. Layered rather than blended so
+                // the translucency of the resting fill is preserved.
+                Circle()
+                    .fill(Palette.pulse)
+                    .opacity(pulse * 0.62)
+
+                Circle()
+                    .strokeBorder(Palette.pulse.opacity(min(1, pulse * 1.3)),
+                                  lineWidth: max(1, diameter * 0.045))
+
                 Image(systemName: systemName)
                     .font(.system(size: diameter * 0.38, weight: .semibold))
                     .foregroundStyle(prominent ? Palette.canvas : tint)
             }
             .frame(width: diameter, height: diameter)
+            .scaleEffect(1 + pulse * growth)
             .contentShape(Circle())
         }
         .buttonStyle(.plain)

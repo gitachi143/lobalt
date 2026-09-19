@@ -28,7 +28,31 @@ enum OverlayCorner: String, CaseIterable, Identifiable {
     }
 }
 
-/// Everything the user can tune, mirrored into `UserDefaults` on write.
+/// Where `AppSettings` keeps its values.
+///
+/// `UserDefaults` is the real implementation. The in-memory one exists so the
+/// developer tooling can run without touching — or leaving anything behind in
+/// — the user's actual preferences.
+protocol SettingsStore: AnyObject {
+    func object(forKey key: String) -> Any?
+    func string(forKey key: String) -> String?
+    func array(forKey key: String) -> [Any]?
+    func set(_ value: Any?, forKey key: String)
+    func removeObject(forKey key: String)
+}
+
+extension UserDefaults: SettingsStore {}
+
+final class MemorySettingsStore: SettingsStore {
+    private var values: [String: Any] = [:]
+    func object(forKey key: String) -> Any? { values[key] }
+    func string(forKey key: String) -> String? { values[key] as? String }
+    func array(forKey key: String) -> [Any]? { values[key] as? [Any] }
+    func set(_ value: Any?, forKey key: String) { values[key] = value }
+    func removeObject(forKey key: String) { values[key] = nil }
+}
+
+/// Everything the user can tune, mirrored into the store on write.
 @Observable
 final class AppSettings {
 
@@ -70,12 +94,12 @@ final class AppSettings {
     /// Remembered so relaunching lands on the duration you use most.
     var lastDuration: Int { didSet { d.set(lastDuration, forKey: K.lastDuration) } }
 
-    @ObservationIgnored private let d: UserDefaults
+    @ObservationIgnored private let d: SettingsStore
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: SettingsStore = UserDefaults.standard) {
         self.d = defaults
         pulseEnabled = d.object(forKey: K.pulseEnabled) as? Bool ?? true
-        pulseIntensity = d.object(forKey: K.pulseIntensity) as? Double ?? 0.7
+        pulseIntensity = d.object(forKey: K.pulseIntensity) as? Double ?? 0.85
         pulseSound = d.object(forKey: K.pulseSound) as? Bool ?? false
         finishSound = d.string(forKey: K.finishSound) ?? "Glass"
         notifyOnFinish = d.object(forKey: K.notifyOnFinish) as? Bool ?? true

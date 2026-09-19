@@ -269,9 +269,9 @@ public final class TimerEngine {
 
     private func strength(for remaining: TimeInterval) -> Double {
         if remaining < 0 { return 1.0 }        // over budget: make it obvious
-        if remaining <= 60 { return 0.9 }
-        if remaining <= 300 { return 0.75 }
-        return 0.55
+        if remaining <= 60 { return 1.0 }
+        if remaining <= 300 { return 0.9 }
+        return 0.75
     }
 
     // MARK: - History

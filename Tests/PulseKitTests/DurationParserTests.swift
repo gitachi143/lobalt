@@ -173,10 +173,23 @@ final class TimeFormatTests: XCTestCase {
         XCTAssertEqual(PulseEnvelope.intensity(elapsed: 0), 0, accuracy: 0.001)
         XCTAssertEqual(PulseEnvelope.intensity(elapsed: PulseEnvelope.attack), 1.0, accuracy: 0.001)
         XCTAssertEqual(PulseEnvelope.intensity(elapsed: 99), 0)
-        // Decays monotonically after the peak.
-        let a = PulseEnvelope.intensity(elapsed: 0.5)
-        let b = PulseEnvelope.intensity(elapsed: 1.0)
-        XCTAssertGreaterThan(a, b)
-        XCTAssertGreaterThan(b, 0)
+
+        // Monotonically decreasing all the way down from the peak.
+        var previous = 1.0
+        for step in stride(from: PulseEnvelope.attack, to: PulseEnvelope.duration, by: 0.02) {
+            let value = PulseEnvelope.intensity(elapsed: step)
+            XCTAssertLessThanOrEqual(value, previous + 0.0001, "rose again at \(step)s")
+            previous = value
+        }
+    }
+
+    func testPulseHitsHardThenLingers() {
+        // The punch should be most of the way down within a third of a second…
+        let afterPunch = PulseEnvelope.intensity(elapsed: PulseEnvelope.attack + PulseEnvelope.punch)
+        XCTAssertEqual(afterPunch, PulseEnvelope.plateau, accuracy: 0.001)
+        // …but still clearly visible a second later, so the glow has a tail.
+        XCTAssertGreaterThan(PulseEnvelope.intensity(elapsed: 1.0), 0.1)
+        // And finished within a couple of seconds.
+        XCTAssertLessThan(PulseEnvelope.intensity(elapsed: 2.3), 0.001)
     }
 }

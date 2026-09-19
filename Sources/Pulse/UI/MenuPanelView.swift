@@ -26,7 +26,7 @@ struct MenuPanelView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(engine.displayTime)
                         .font(Theme.digits(26, weight: .semibold))
-                        .foregroundStyle(Theme.pulseTint(color, pulse: pulse))
+                        .foregroundStyle(Theme.pulseDigitTint(color, pulse: pulse))
                         .contentTransition(.numericText(countsDown: true))
                     Text(engine.label.isEmpty ? app.statusText : engine.label)
                         .font(Theme.label(11))

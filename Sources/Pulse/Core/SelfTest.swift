@@ -112,6 +112,16 @@ enum SelfTest {
         spin(0.3)
         check("registry holds the window", WindowRegistry.shared.mainWindow === window)
 
+        // Park it far off every display and confirm it gets rescued.
+        window.setFrameOrigin(CGPoint(x: -4000, y: -4000))
+        WindowRegistry.moveOnScreenIfNeeded(window)
+        if let screen = NSScreen.main {
+            let overlap = screen.visibleFrame.intersection(window.frame)
+            check("an off-screen window is pulled back into view",
+                  overlap.width >= 160 && overlap.height >= 80,
+                  "frame \(rect(window.frame))")
+        }
+
         window.performClose(nil)
         spin(0.3)
         check("window survives being closed", WindowRegistry.shared.mainWindow === window)

@@ -16,6 +16,32 @@ final class WindowRegistry {
         guard mainWindow !== window else { return }
         window.isReleasedWhenClosed = false
         mainWindow = window
+        Self.moveOnScreenIfNeeded(window)
+    }
+
+    /// Drags the window back onto a display if it has ended up outside every
+    /// one of them.
+    ///
+    /// Restoring a saved frame after a display change, or a cascade from an
+    /// odd origin, can put it somewhere unreachable — and an app that opens
+    /// with nothing visible looks broken rather than misplaced.
+    static func moveOnScreenIfNeeded(_ window: NSWindow) {
+        let frame = window.frame
+        // A sliver poking onto a display isn't enough to grab hold of.
+        let reachable = NSScreen.screens.contains { screen in
+            let overlap = screen.visibleFrame.intersection(frame)
+            return overlap.width >= 160 && overlap.height >= 80
+        }
+        guard !reachable, let screen = NSScreen.main ?? NSScreen.screens.first else { return }
+
+        let visible = screen.visibleFrame
+        let size = CGSize(width: min(frame.width, visible.width),
+                          height: min(frame.height, visible.height))
+        window.setFrame(CGRect(x: visible.midX - size.width / 2,
+                               y: visible.midY - size.height / 2,
+                               width: size.width,
+                               height: size.height),
+                        display: true)
     }
 
     /// True when the user can already see the big timer, which is the only

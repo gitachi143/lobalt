@@ -125,7 +125,7 @@ final class TimerEngineTests: XCTestCase {
         e.start(seconds: 61)
         wait(for: [pulsed], timeout: 4)
         XCTAssertNotNil(e.lastPulseAt)
-        XCTAssertEqual(e.pulseStrength, 0.9, accuracy: 0.01, "under a minute left should pulse harder")
+        XCTAssertEqual(e.pulseStrength, 1.0, accuracy: 0.01, "under a minute left should pulse at full strength")
     }
 }
 

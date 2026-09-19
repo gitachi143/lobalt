@@ -3,24 +3,32 @@
 A timeboxing timer for macOS. You give yourself a length of time, and Pulse
 keeps that number in front of you — quietly — until it runs out.
 
-![Pulse, caught mid-pulse on the minute](docs/live-pulse.png)
+![Pulse, caught on the beat](docs/fullscreen-pulse.png)
 
 ## The idea
 
 Most timers only speak up twice: when you start them and when they go off. In
 between you either stare at the clock or forget it exists.
 
-Pulse warms to red for about a second and a half on every whole minute, then
-cools back down. It's slow enough not to yank you out of what you're doing, and
-bright enough that you register it out of the corner of your eye. It presses a
-little harder over the last five minutes, harder still once you're past your
-estimate.
+On every whole minute Pulse hits. The entire surface floods red in about
+forty milliseconds, the controls swell and pick up a red halo, and then it all
+cools back down over the next couple of seconds. The shape matters more than
+the colour: an instant attack, a hard drop off the peak, then a long afterglow.
+A symmetrical swell would read as a slow throb, and a plain fade would be gone
+before you had looked up.
 
-The same beat runs everywhere at once — the window, the corner overlay, and the
-menu bar all warm up together. The rest of the time it just sits there being a
-timer.
+The digits don't join in — they heat *past* red into white-hot, so the one
+thing you actually need to read stays readable while everything behind it goes
+crimson.
 
-![Pulse between beats](docs/live-calm.png)
+It presses harder over the last five minutes, and harder still once you're past
+your estimate. Turn it down, or off, in Settings. The rest of the time it just
+sits there being a timer.
+
+![Pulse between beats](docs/fullscreen-calm.png)
+
+Full screen gives the ring the whole display, and the controls fade out after a
+few seconds until you move the mouse.
 
 ## Where it lives
 
@@ -59,7 +67,9 @@ understood before you commit.
 ## The rest of it
 
 - **Counts past zero.** When time is up it keeps going in red, so you find out
-  you ran eleven minutes over instead of guessing.
+  you ran eleven minutes over instead of guessing. The ring refills as the
+  overrun accrues — a full second lap means you took twice as long as you gave
+  yourself.
 - **Learns how you estimate.** Every session is logged, and the history window
   tells you whether you habitually run over or under.
   ![Overtime](docs/main-overtime.png)
@@ -97,7 +107,8 @@ cd pulse-timer
 ```
 
 That produces a universal (Apple silicon + Intel) `Pulse.app` and copies it to
-`/Applications`. Leave off `--install` to just build it into `./build`.
+`/Applications`. Pass a directory to put it somewhere else
+(`--install ~/Desktop`), or leave off `--install` to just build into `./build`.
 
 The build is signed ad-hoc rather than with a Developer ID, so the first launch
 needs the usual right-click → **Open**. Microphone and speech-recognition

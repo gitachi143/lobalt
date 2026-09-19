@@ -18,7 +18,7 @@ struct OverlayView: View {
     var body: some View {
         let pulse = app.pulseNow()
         let color = Theme.timeColor(remaining: engine.remaining, planned: engine.plannedDuration)
-        let tinted = Theme.pulseTint(color, pulse: pulse)
+        let tinted = Theme.pulseDigitTint(color, pulse: pulse)
 
         VStack(alignment: .leading, spacing: 0) {
             topRow(color: color, tinted: tinted, pulse: pulse)

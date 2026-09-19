@@ -9,6 +9,7 @@ struct MainView: View {
     @State private var quickEntry = ""
     @State private var chromeVisible = true
     @State private var chromeTimer: Timer?
+    @State private var isFullScreen = false
     @FocusState private var quickFocused: Bool
     @FocusState private var labelFocused: Bool
 
@@ -17,8 +18,7 @@ struct MainView: View {
     var body: some View {
         GeometryReader { geo in
             let compact = geo.size.height < 460 || geo.size.width < 420
-            let ring = min(geo.size.width * 0.62, geo.size.height * (compact ? 0.52 : 0.55))
-            let ringSize = max(150, min(ring, 520))
+            let ringSize = ringSize(for: geo.size, compact: compact)
             let pulse = app.pulseNow()
 
             ZStack {
@@ -37,7 +37,8 @@ struct MainView: View {
                     Spacer(minLength: 8)
 
                     VStack(spacing: compact ? 10 : 16) {
-                        ControlRow(compact: compact)
+                        ControlRow(compact: compact, pulse: pulse,
+                                   big: geo.size.width >= 1000 && geo.size.height >= 760)
 
                         if engine.phase == .idle && !compact {
                             PresetRow()
@@ -61,12 +62,22 @@ struct MainView: View {
                 .padding(.bottom, compact ? 12 : 18)
             }
             .animation(.easeInOut(duration: 0.35), value: chromeVisible)
+        .animation(.easeInOut(duration: 0.4), value: isFullScreen)
             .animation(.easeOut(duration: 0.2), value: engine.phase)
         }
         .frame(minWidth: 360, minHeight: 380)
         .preferredColorScheme(.dark)
         .onContinuousHover { phase in
             if case .active = phase { wakeChrome() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { note in
+            if (note.object as? NSWindow) === WindowRegistry.shared.mainWindow { isFullScreen = true }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { note in
+            if (note.object as? NSWindow) === WindowRegistry.shared.mainWindow {
+                isFullScreen = false
+                chromeVisible = true
+            }
         }
         .onKeyPress(.space) {
             guard !quickFocused, !labelFocused else { return .ignored }
@@ -78,6 +89,21 @@ struct MainView: View {
 
     // MARK: - Pieces
 
+    /// Full screen exists to make the timer the only thing on the display, so
+    /// the ring takes as much of it as the visible controls allow, then grows
+    /// again once the chrome fades out. A merely very large window gets the
+    /// same treatment — the space is there either way.
+    private func ringSize(for size: CGSize, compact: Bool) -> CGFloat {
+        let expansive = isFullScreen || (size.width >= 1000 && size.height >= 760)
+        if expansive {
+            let heightShare = (isFullScreen && !chromeVisible) ? 0.82 : 0.62
+            let candidate = min(size.width * 0.74, size.height * heightShare)
+            return max(300, min(candidate, 1100))
+        }
+        let candidate = min(size.width * 0.62, size.height * (compact ? 0.52 : 0.55))
+        return max(150, min(candidate, 560))
+    }
+
     private func background(pulse: Double) -> some View {
         ZStack {
             Palette.canvas
@@ -85,8 +111,8 @@ struct MainView: View {
                 colors: [Color.white.opacity(0.055), .clear],
                 center: .center, startRadius: 0, endRadius: 520
             )
-            // Warm wash across the whole canvas, strongest at the edges.
-            PulseVignette(pulse: pulse * 0.62)
+            // The whole surface turns over on the beat.
+            PulseImpact(pulse: pulse)
             if app.finishFlash {
                 Palette.over.opacity(0.10)
                     .transition(.opacity)
@@ -145,7 +171,7 @@ private struct TimerFace: View {
 
     var body: some View {
         let color = Theme.timeColor(remaining: engine.remaining, planned: engine.plannedDuration)
-        let tinted = Theme.pulseTint(color, pulse: pulse)
+        let tinted = Theme.pulseDigitTint(color, pulse: pulse)
 
         ZStack {
             TimerRing(fraction: engine.ringFraction,
@@ -230,59 +256,75 @@ private struct LabelField: View {
 private struct ControlRow: View {
     @Environment(AppState.self) private var app
     var compact: Bool
+    var pulse: Double = 0
+    /// Full screen gets chunkier controls to match the larger ring.
+    var big: Bool = false
 
     private var engine: TimerEngine { app.engine }
-    private var big: CGFloat { compact ? 42 : 54 }
-    private var small: CGFloat { compact ? 32 : 38 }
+    private var primary: CGFloat { compact ? 42 : (big ? 76 : 54) }
+    private var secondary: CGFloat { compact ? 32 : (big ? 52 : 38) }
+
+    /// The primary control swells hardest; the rest just lean in.
+    private let primaryGrowth = 0.26
+    private let secondaryGrowth = 0.12
 
     var body: some View {
         HStack(spacing: compact ? 10 : 14) {
             switch engine.phase {
             case .idle:
-                VoiceButton(diameter: small)
-                RoundIconButton(systemName: "play.fill", diameter: big,
+                VoiceButton(diameter: secondary, pulse: pulse, growth: secondaryGrowth)
+                RoundIconButton(systemName: "play.fill", diameter: primary,
                                 tint: Palette.calm, prominent: true,
+                                pulse: pulse, growth: primaryGrowth,
                                 help: "Start (Space)") {
                     app.start(seconds: Int(engine.plannedDuration), label: nil)
                 }
-                RoundIconButton(systemName: "minus", diameter: small,
-                                tint: Palette.secondaryText, help: "Five minutes less") {
+                RoundIconButton(systemName: "minus", diameter: secondary,
+                                tint: Palette.secondaryText, pulse: pulse, growth: secondaryGrowth,
+                                help: "Five minutes less") {
                     app.engine.add(seconds: -300)
                 }
-                RoundIconButton(systemName: "plus", diameter: small,
-                                tint: Palette.secondaryText, help: "Five minutes more") {
+                RoundIconButton(systemName: "plus", diameter: secondary,
+                                tint: Palette.secondaryText, pulse: pulse, growth: secondaryGrowth,
+                                help: "Five minutes more") {
                     app.engine.add(seconds: 300)
                 }
 
             case .running, .paused:
-                VoiceButton(diameter: small)
+                VoiceButton(diameter: secondary, pulse: pulse, growth: secondaryGrowth)
                 RoundIconButton(systemName: engine.phase == .paused ? "play.fill" : "pause.fill",
-                                diameter: big,
+                                diameter: primary,
                                 tint: engine.phase == .paused ? Palette.calm : Palette.primaryText,
                                 prominent: engine.phase == .paused,
+                                pulse: pulse, growth: primaryGrowth,
                                 help: engine.phase == .paused ? "Resume (Space)" : "Pause (Space)") {
                     app.toggle()
                 }
-                RoundIconButton(systemName: "goforward.5", diameter: small,
-                                tint: Palette.secondaryText, help: "Add five minutes") {
+                RoundIconButton(systemName: "goforward.5", diameter: secondary,
+                                tint: Palette.secondaryText, pulse: pulse, growth: secondaryGrowth,
+                                help: "Add five minutes") {
                     app.addMinutes(5)
                 }
-                RoundIconButton(systemName: "stop.fill", diameter: small,
-                                tint: Palette.secondaryText, help: "Stop (⌘.)") {
+                RoundIconButton(systemName: "stop.fill", diameter: secondary,
+                                tint: Palette.secondaryText, pulse: pulse, growth: secondaryGrowth,
+                                help: "Stop (⌘.)") {
                     app.stop()
                 }
 
             case .finished:
-                RoundIconButton(systemName: "checkmark", diameter: big,
-                                tint: Palette.calm, prominent: true, help: "Done") {
+                RoundIconButton(systemName: "checkmark", diameter: primary,
+                                tint: Palette.calm, prominent: true, pulse: pulse, growth: primaryGrowth,
+                                help: "Done") {
                     app.engine.acknowledge()
                 }
-                RoundIconButton(systemName: "arrow.counterclockwise", diameter: small,
-                                tint: Palette.secondaryText, help: "Run it again (⌘R)") {
+                RoundIconButton(systemName: "arrow.counterclockwise", diameter: secondary,
+                                tint: Palette.secondaryText, pulse: pulse, growth: secondaryGrowth,
+                                help: "Run it again (⌘R)") {
                     app.restart()
                 }
-                RoundIconButton(systemName: "goforward.5", diameter: small,
-                                tint: Palette.secondaryText, help: "Five more minutes") {
+                RoundIconButton(systemName: "goforward.5", diameter: secondary,
+                                tint: Palette.secondaryText, pulse: pulse, growth: secondaryGrowth,
+                                help: "Five more minutes") {
                     app.addMinutes(5)
                 }
             }
@@ -489,6 +531,8 @@ private struct StatsFooter: View {
 struct VoiceButton: View {
     @Environment(AppState.self) private var app
     var diameter: CGFloat
+    var pulse: Double = 0
+    var growth: Double = 0
 
     var body: some View {
         let listening = app.speech.isListening
@@ -502,6 +546,7 @@ struct VoiceButton: View {
             RoundIconButton(systemName: listening ? "waveform" : "mic.fill",
                             diameter: diameter,
                             tint: listening ? Palette.urgent : Palette.secondaryText,
+                            pulse: pulse, growth: growth,
                             help: listening ? "Stop listening" : "Say a time limit (⌃⌥⌘V)") {
                 app.toggleVoice()
             }

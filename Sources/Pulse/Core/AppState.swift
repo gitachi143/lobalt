@@ -31,7 +31,7 @@ final class AppState {
 
     /// `defaults` and `storeURL` are overridable so the developer tooling can
     /// run against throwaway state instead of the real preferences and history.
-    init(defaults: UserDefaults = .standard, storeURL: URL? = nil) {
+    init(defaults: SettingsStore = UserDefaults.standard, storeURL: URL? = nil) {
         self.settings = AppSettings(defaults: defaults)
         self.store = SessionStore(url: storeURL)
 

@@ -54,24 +54,38 @@ public enum TimeFormat {
 
 /// The shape of the once-a-minute red pulse.
 ///
-/// Deliberately asymmetric — a fast rise catches peripheral vision, a long soft
-/// decay reads as ambient rather than as an alarm. Nothing moves or resizes
-/// much; the signal is carried almost entirely by colour, which is what keeps
-/// it visible without pulling you out of what you are doing.
+/// Three stages rather than a simple rise and fall: an almost instant hit, a
+/// hard drop off the peak, then a long afterglow. That is what makes it land
+/// as an impact — a symmetrical swell reads as a slow throb, and a plain
+/// exponential decay is gone before you have looked up. The tail is what keeps
+/// the timer warm for a second or two after the hit.
 public enum PulseEnvelope {
-    public static let attack: TimeInterval = 0.16
-    public static let decay: TimeInterval = 1.6
-    public static var duration: TimeInterval { attack + decay }
+    /// Time to reach full strength. Short enough to feel instantaneous.
+    public static let attack: TimeInterval = 0.045
+    /// The hard fall away from the peak.
+    public static let punch: TimeInterval = 0.28
+    /// The afterglow, fading from `plateau` to nothing.
+    public static let tail: TimeInterval = 1.9
+    /// Level the punch falls to before the slow fade takes over.
+    public static let plateau: Double = 0.42
+
+    public static var duration: TimeInterval { attack + punch + tail }
 
     /// 0…1 intensity for a pulse that began `elapsed` seconds ago.
     public static func intensity(elapsed: TimeInterval) -> Double {
         guard elapsed >= 0, elapsed < duration else { return 0 }
+
         if elapsed < attack {
             let t = elapsed / attack
-            return t * t * (3 - 2 * t)          // smoothstep up
+            return t * t * (3 - 2 * t)                  // smoothstep up
         }
-        let t = (elapsed - attack) / decay
+        if elapsed < attack + punch {
+            let t = (elapsed - attack) / punch
+            let e = 1 - t
+            return plateau + (1 - plateau) * e * e      // peak -> plateau
+        }
+        let t = (elapsed - attack - punch) / tail
         let e = 1 - t
-        return e * e * e                         // cubic ease-out down
+        return plateau * e * e                          // plateau -> nothing
     }
 }
