@@ -5,6 +5,7 @@ import PulseKit
 
 /// The always-there surface: a live countdown in the menu bar that reddens
 /// along with everything else on the minute.
+@MainActor
 final class MenuBarController {
 
     private let statusItem: NSStatusItem
@@ -45,10 +46,14 @@ final class MenuBarController {
             _ = app.engine.lastPulseAt
             _ = app.engine.label
             _ = app.settings.pulseEnabled
-        } onChange: { [weak self] in
-            DispatchQueue.main.async {
-                self?.refresh()
-                self?.observe()
+        } onChange: {
+            // `onChange` fires synchronously during the mutation, so the work
+            // is deferred rather than done here.
+            DispatchQueue.main.async { [weak self] in
+                MainActor.assumeIsolated {
+                    self?.refresh()
+                    self?.observe()
+                }
             }
         }
     }
@@ -166,6 +171,22 @@ final class MenuBarController {
         presetItem.submenu = presets
         menu.addItem(presetItem)
 
+        let recent = app.store.recentTasks()
+        if !recent.isEmpty {
+            let recentMenu = NSMenu()
+            for task in recent {
+                let entry = NSMenuItem(title: "\(task.label) · \(TimeFormat.humane(task.planned))",
+                                       action: #selector(menuRepeat(_:)), keyEquivalent: "")
+                entry.target = self
+                entry.tag = Int(task.planned)
+                entry.representedObject = task.label
+                recentMenu.addItem(entry)
+            }
+            let recentItem = NSMenuItem(title: "Again", action: nil, keyEquivalent: "")
+            recentItem.submenu = recentMenu
+            menu.addItem(recentItem)
+        }
+
         menu.addItem(.separator())
         menu.addItem(item("Open Pulse", #selector(menuShow)))
         menu.addItem(item("Settings…", #selector(menuSettings)))
@@ -195,4 +216,7 @@ final class MenuBarController {
     }
     @objc private func menuQuit() { NSApp.terminate(nil) }
     @objc private func menuPreset(_ sender: NSMenuItem) { app.startPreset(minutes: sender.tag) }
+    @objc private func menuRepeat(_ sender: NSMenuItem) {
+        app.start(seconds: sender.tag, label: sender.representedObject as? String)
+    }
 }

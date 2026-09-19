@@ -99,13 +99,6 @@ enum Theme {
     }
 }
 
-/// Honours the Reduce Motion accessibility setting for the pulse specifically —
-/// the glow stays, the movement does not.
-struct MotionScale {
-    let reduceMotion: Bool
-    func scale(_ value: Double) -> Double { reduceMotion ? 0 : value }
-}
-
 /// Set while rendering documentation images. `ImageRenderer` cannot draw
 /// AppKit-backed text fields, so those swap to static text that matches their
 /// resting appearance. Nothing else about the layout changes.

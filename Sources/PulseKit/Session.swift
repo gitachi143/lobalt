@@ -134,13 +134,18 @@ public final class SessionStore {
         return streak
     }
 
-    /// Labels used recently, most frequent first — feeds the quick-pick menu.
-    public func frequentLabels(limit: Int = 6) -> [String] {
-        var counts: [String: Int] = [:]
-        for s in sessions.suffix(120) where s.label != "Untitled" && !s.label.isEmpty {
-            counts[s.label, default: 0] += 1
+    /// Recent distinct tasks with the length you gave them, newest first.
+    /// Feeds the menu bar's "Recent" submenu so a repeat is one click.
+    public func recentTasks(limit: Int = 6) -> [(label: String, planned: TimeInterval)] {
+        var seen = Set<String>()
+        var out: [(label: String, planned: TimeInterval)] = []
+        for session in sessions.reversed()
+        where !session.label.isEmpty && session.label != "Untitled" {
+            guard seen.insert(session.label).inserted else { continue }
+            out.append((session.label, session.planned))
+            if out.count >= limit { break }
         }
-        return counts.sorted { ($0.value, $0.key) > ($1.value, $1.key) }.prefix(limit).map(\.key)
+        return out
     }
 
     // MARK: - Persistence

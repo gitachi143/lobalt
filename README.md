@@ -3,7 +3,7 @@
 A timeboxing timer for macOS. You give yourself a length of time, and Pulse
 keeps that number in front of you — quietly — until it runs out.
 
-![Pulse, mid-pulse](docs/main-pulse.png)
+![Pulse, caught mid-pulse on the minute](docs/live-pulse.png)
 
 ## The idea
 
@@ -17,7 +17,10 @@ little harder over the last five minutes, harder still once you're past your
 estimate.
 
 The same beat runs everywhere at once — the window, the corner overlay, and the
-menu bar all warm up together.
+menu bar all warm up together. The rest of the time it just sits there being a
+timer.
+
+![Pulse between beats](docs/live-calm.png)
 
 ## Where it lives
 
@@ -68,6 +71,21 @@ understood before you commit.
   icon and live in the menu bar alone.
 - Honours Reduce Motion — the glow stays, the movement goes.
 
+## Driving it from elsewhere
+
+Pulse registers a `pulse://` scheme, so Shortcuts, Raycast, a keyboard-macro
+app or a shell script can start timers:
+
+```sh
+open "pulse://start?q=25m%20write%20the%20essay"   # anything the text field takes
+open "pulse://start?m=45"                          # or just minutes
+open "pulse://add?m=5"
+open "pulse://pause"    # also resume, toggle, stop, restart, show
+```
+
+Transport only, deliberately: any web page can fire a URL scheme, so there is
+no link here that opens the microphone or touches the filesystem.
+
 ## Install
 
 Requires macOS 14 or later.
@@ -106,11 +124,13 @@ swift test           # unit tests for the parser, timer maths and history
 ./Scripts/build-app.sh   # assemble Pulse.app
 ```
 
-Two developer flags on the built binary:
+Two developer flags on the built binary, both of which run against throwaway
+preferences and a throwaway session log rather than your real ones:
 
 ```sh
-./.build/debug/Pulse --selftest         # runtime checks: panel placement, menu bar, ticking
-./.build/debug/Pulse --snapshot ./docs  # re-render the images in this README
+./.build/debug/Pulse --selftest         # runtime checks: panel placement, window
+                                        # lifecycle, menu bar, ticking, parsing
+./.build/debug/Pulse --snapshot ./docs  # re-render the interface images
 ```
 
 Layout:

@@ -9,8 +9,8 @@ import PulseKit
 final class AppState {
 
     let engine = TimerEngine()
-    let store = SessionStore()
-    let settings = AppSettings()
+    let store: SessionStore
+    let settings: AppSettings
     let speech = SpeechController()
 
     /// Transient confirmation line shown after a voice or quick-entry command.
@@ -29,7 +29,12 @@ final class AppState {
     @ObservationIgnored private var echoTimer: Timer?
     @ObservationIgnored private var flashTimer: Timer?
 
-    init() {
+    /// `defaults` and `storeURL` are overridable so the developer tooling can
+    /// run against throwaway state instead of the real preferences and history.
+    init(defaults: UserDefaults = .standard, storeURL: URL? = nil) {
+        self.settings = AppSettings(defaults: defaults)
+        self.store = SessionStore(url: storeURL)
+
         engine.preset(seconds: settings.lastDuration)
         syncSettings()
 

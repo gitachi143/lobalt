@@ -182,12 +182,14 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertEqual(s.dayStreak, 3)
     }
 
-    func testFrequentLabels() {
+    func testRecentTasksAreDistinctAndNewestFirst() {
         let s = tempStore()
-        s.add(session(label: "Write", planned: 60, actual: 60))
-        s.add(session(label: "Write", planned: 60, actual: 60))
-        s.add(session(label: "Review", planned: 60, actual: 60))
-        XCTAssertEqual(s.frequentLabels().first, "Write")
+        s.add(session(label: "Write", planned: 1500, actual: 60))
+        s.add(session(label: "Review", planned: 900, actual: 60))
+        s.add(session(label: "Write", planned: 1200, actual: 60))
+        let recent = s.recentTasks()
+        XCTAssertEqual(recent.map(\.label), ["Write", "Review"])
+        XCTAssertEqual(recent.first?.planned, 1200, "keeps the most recent length for a repeated task")
     }
 
     func testLimitTrimsOldest() {

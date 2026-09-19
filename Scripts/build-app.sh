@@ -62,6 +62,14 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <string>Pulse listens when you press the microphone button so you can say how long you want for a task.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>Pulse turns what you say into a timer. Recognition runs on this Mac whenever your hardware supports it.</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key><string>$BUNDLE_ID</string>
+            <key>CFBundleURLSchemes</key>
+            <array><string>pulse</string></array>
+        </dict>
+    </array>
 </dict>
 </plist>
 PLIST

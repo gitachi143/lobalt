@@ -14,6 +14,20 @@ enum Snapshot {
         return args[i + 1]
     }
 
+    /// Builds an `AppState` backed by throwaway preferences and a throwaway
+    /// session log, so rendering docs never touches real history.
+    static func scratchState() -> (AppState, String) {
+        let suite = "com.gitachi.Pulse.scratch.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite) ?? .standard
+        let url = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("pulse-scratch-\(UUID().uuidString).json")
+        return (AppState(defaults: defaults, storeURL: url), suite)
+    }
+
+    static func discard(_ suite: String) {
+        UserDefaults.standard.removePersistentDomain(forName: suite)
+    }
+
     static func run(into directory: String, state: AppState) {
         let dir = URL(fileURLWithPath: directory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

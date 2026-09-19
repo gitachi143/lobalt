@@ -515,17 +515,25 @@ struct VoiceButton: View {
 private struct KeyWindowAccessor: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        DispatchQueue.main.async {
-            guard let window = view.window else { return }
-            window.isReleasedWhenClosed = false
-            WindowRegistry.shared.mainWindow = window
-        }
+        // The view isn't in a window yet when this runs, and there may be no
+        // further update to piggyback on, so poll briefly rather than taking
+        // one shot at it.
+        register(from: view, attempt: 0)
         return view
     }
+
+    private func register(from view: NSView, attempt: Int) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + (attempt == 0 ? 0 : 0.05)) {
+            if let window = view.window {
+                WindowRegistry.shared.adopt(window)
+            } else if attempt < 20 {
+                register(from: view, attempt: attempt + 1)
+            }
+        }
+    }
     func updateNSView(_ nsView: NSView, context: Context) {
-        if let window = nsView.window, WindowRegistry.shared.mainWindow !== window {
-            window.isReleasedWhenClosed = false
-            WindowRegistry.shared.mainWindow = window
+        if let window = nsView.window {
+            WindowRegistry.shared.adopt(window)
         }
     }
 }

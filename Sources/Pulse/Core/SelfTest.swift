@@ -102,6 +102,25 @@ enum SelfTest {
         spin(0.5)
         check("hides once nothing is timing", !panel.isVisible)
 
+        // --- Window lifecycle --------------------------------------------
+        print("window")
+        let window = NSWindow(contentRect: NSRect(x: 200, y: 200, width: 400, height: 400),
+                              styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                              backing: .buffered, defer: false)
+        WindowRegistry.shared.adopt(window)
+        window.makeKeyAndOrderFront(nil)
+        spin(0.3)
+        check("registry holds the window", WindowRegistry.shared.mainWindow === window)
+
+        window.performClose(nil)
+        spin(0.3)
+        check("window survives being closed", WindowRegistry.shared.mainWindow === window)
+        check("window is off screen after close", !window.isVisible)
+        window.makeKeyAndOrderFront(nil)
+        spin(0.3)
+        check("reopens on demand", window.isVisible)
+        window.orderOut(nil)
+
         // --- Menu bar ----------------------------------------------------
         print("menu bar")
         let menuBar = MenuBarController(app: state)
@@ -143,3 +162,4 @@ enum SelfTest {
         "(\(Int(r.minX)),\(Int(r.minY)) \(Int(r.width))×\(Int(r.height)))"
     }
 }
+

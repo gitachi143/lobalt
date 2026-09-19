@@ -3,19 +3,36 @@ import SwiftUI
 import PulseKit
 
 /// Shared handle on the main timer window so the overlay can tell whether you
-/// are already looking at the timer.
+/// are already looking at the timer, and so "Open Pulse" always has something
+/// to bring back.
 final class WindowRegistry {
     static let shared = WindowRegistry()
-    weak var mainWindow: NSWindow?
+    var mainWindow: NSWindow?
 
-    var isMainWindowFront: Bool {
-        guard let w = mainWindow, w.isVisible, !w.isMiniaturized, NSApp.isActive else { return false }
-        return NSApp.keyWindow === w || NSApp.mainWindow === w
+    /// Held strongly, with release-on-close switched off, so closing the
+    /// window only hides it. Reopening is then an order-front away and the
+    /// view keeps running — the timer carries on either way.
+    func adopt(_ window: NSWindow) {
+        guard mainWindow !== window else { return }
+        window.isReleasedWhenClosed = false
+        mainWindow = window
     }
 
-    var isMainWindowOnScreen: Bool {
-        guard let w = mainWindow else { return false }
-        return w.isVisible && !w.isMiniaturized
+    /// True when the user can already see the big timer, which is the only
+    /// time the corner pill is redundant.
+    ///
+    /// Deliberately not a key-window check: the overlay is itself a panel that
+    /// can take key, so asking "is the main window key" leaves the pill stuck
+    /// on screen after you click it and then come back. `isOnActiveSpace`
+    /// covers the case where the window is open but parked on another desktop.
+    var isMainWindowFront: Bool {
+        guard NSApp.isActive,
+              let w = mainWindow,
+              w.isVisible,
+              !w.isMiniaturized,
+              w.isOnActiveSpace
+        else { return false }
+        return true
     }
 }
 
@@ -204,15 +221,10 @@ final class OverlayController {
     /// Exposed for `--selftest`, which inspects the real panel's geometry.
     var debugPanel: OverlayPanel { panel }
 
-    /// Forget a dragged position and snap back to the configured corner.
-    func resetPosition() {
-        app.settings.overlayOrigin = nil
-        anchor()
-    }
-
     deinit {
         poll?.invalidate()
         NotificationCenter.default.removeObserver(self)
         NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
 }
+

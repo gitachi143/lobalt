@@ -67,13 +67,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hotKeys = HotKeyCenter()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Both developer flags run against scratch state, never the real
+        // preferences or session history.
         if let dir = Snapshot.requestedDirectory() {
-            Snapshot.run(into: dir, state: state)
+            let (scratch, suite) = Snapshot.scratchState()
+            Snapshot.run(into: dir, state: scratch)
+            Snapshot.discard(suite)
             NSApp.terminate(nil)
             return
         }
         if SelfTest.wasRequested {
-            exit(Int32(SelfTest.run(state: state)))
+            let (scratch, suite) = Snapshot.scratchState()
+            let failures = SelfTest.run(state: scratch)
+            Snapshot.discard(suite)
+            exit(Int32(failures))
         }
         NSApp.setActivationPolicy(state.settings.showDockIcon ? .regular : .accessory)
 
@@ -88,6 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         state.onFinished = { [weak self] in self?.overlay?.flashToFront() }
 
         installHotKeys()
+        claimURLEvents()
         Notifier.requestAuthorization()
 
         let nc = NotificationCenter.default
@@ -120,16 +128,74 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func showMainWindow() {
         NSApp.activate(ignoringOtherApps: true)
-        if let window = WindowRegistry.shared.mainWindow {
-            if window.isMiniaturized { window.deminiaturize(nil) }
-            window.makeKeyAndOrderFront(nil)
-        } else {
-            // The window was closed outright; ask SwiftUI to build a new one.
-            NSApp.sendAction(Selector(("newWindowForTab:")), to: nil, from: nil)
-            if WindowRegistry.shared.mainWindow == nil {
-                NSApp.windows.first(where: { $0.identifier?.rawValue.contains("main") == true })?
-                    .makeKeyAndOrderFront(nil)
+        // The window is kept alive through a close, so this always has a
+        // target — see `WindowRegistry.adopt`.
+        guard let window = WindowRegistry.shared.mainWindow else { return }
+        if window.isMiniaturized { window.deminiaturize(nil) }
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    // MARK: - URL scheme
+
+    /// `pulse://` links, so timers can be driven from Shortcuts, Raycast, a
+    /// shell script or another app:
+    ///
+    ///     open "pulse://start?q=25m%20write%20the%20essay"
+    ///     open "pulse://add?m=5"
+    ///     open "pulse://pause"
+    ///
+    /// Deliberately limited to timer transport. Any web page can fire a URL
+    /// scheme, so there is no action here that opens the microphone or writes
+    /// to disk.
+    ///
+    /// Claimed as a raw Apple Event rather than through
+    /// `application(_:open:)`. Routing it the usual way lets SwiftUI see it as
+    /// an external event, and a `Window` scene responds to those by closing
+    /// itself — so a link would dismiss the timer window as a side effect.
+    /// Installing this handler last means SwiftUI never receives the event.
+    private func claimURLEvents() {
+        NSAppleEventManager.shared().setEventHandler(
+            self,
+            andSelector: #selector(handleURLEvent(_:withReplyEvent:)),
+            forEventClass: AEEventClass(kInternetEventClass),
+            andEventID: AEEventID(kAEGetURL)
+        )
+    }
+
+    @objc private func handleURLEvent(_ event: NSAppleEventDescriptor,
+                                      withReplyEvent reply: NSAppleEventDescriptor) {
+        guard let text = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
+              let url = URL(string: text), url.scheme == "pulse" else { return }
+        handle(url)
+    }
+
+    private func handle(_ url: URL) {
+        // Both pulse://start and pulse:///start reach here as one or the other.
+        let action = (url.host?.isEmpty == false ? url.host! : url.lastPathComponent).lowercased()
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        func value(_ name: String) -> String? {
+            items.first { $0.name == name }?.value
+        }
+
+        switch action {
+        case "start":
+            // Accepts anything the quick-entry field accepts.
+            if let q = value("q") ?? value("t"), !q.isEmpty {
+                state.submitQuickEntry(q)
+            } else if let m = value("m").flatMap(Int.init) {
+                state.startPreset(minutes: m)
+            } else {
+                state.start(seconds: Int(state.engine.plannedDuration), label: nil)
             }
+        case "add":
+            state.addMinutes(value("m").flatMap(Int.init) ?? 5)
+        case "pause": state.engine.pause()
+        case "resume": state.engine.resume()
+        case "toggle": state.toggle()
+        case "stop": state.stop()
+        case "restart": state.restart()
+        case "show": showMainWindow()
+        default: break
         }
     }
 
