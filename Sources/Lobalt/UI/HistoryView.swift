@@ -1,5 +1,5 @@
 import SwiftUI
-import PulseKit
+import LobaltKit
 
 /// What you actually spent time on, and how good your estimates were.
 struct HistoryView: View {

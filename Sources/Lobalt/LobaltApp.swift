@@ -1,13 +1,13 @@
 import SwiftUI
 import AppKit
-import PulseKit
+import LobaltKit
 
 @main
-struct PulseApp: App {
+struct LobaltApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
     var body: some Scene {
-        Window("Pulse", id: "main") {
+        Window("Lobalt", id: "main") {
             MainView()
                 .environment(delegate.state)
         }
@@ -94,10 +94,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Notifier.requestAuthorization()
 
         let nc = NotificationCenter.default
-        nc.addObserver(forName: .pulseHotKeysChanged, object: nil, queue: .main) { [weak self] _ in
+        nc.addObserver(forName: .lobaltHotKeysChanged, object: nil, queue: .main) { [weak self] _ in
             self?.installHotKeys()
         }
-        nc.addObserver(forName: .pulseOverlayLayoutChanged, object: nil, queue: .main) { [weak self] _ in
+        nc.addObserver(forName: .lobaltOverlayLayoutChanged, object: nil, queue: .main) { [weak self] _ in
             self?.overlay?.anchor()
         }
         // A timer that ran while the lid was shut should read correctly the
@@ -133,12 +133,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - URL scheme
 
-    /// `pulse://` links, so timers can be driven from Shortcuts, Raycast, a
+    /// `lobalt://` links, so timers can be driven from Shortcuts, Raycast, a
     /// shell script or another app:
     ///
-    ///     open "pulse://start?q=25m%20write%20the%20essay"
-    ///     open "pulse://add?m=5"
-    ///     open "pulse://pause"
+    ///     open "lobalt://start?q=25m%20write%20the%20essay"
+    ///     open "lobalt://add?m=5"
+    ///     open "lobalt://pause"
     ///
     /// Deliberately limited to timer transport. Any web page can fire a URL
     /// scheme, so there is no action here that opens the microphone or writes
@@ -161,12 +161,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func handleURLEvent(_ event: NSAppleEventDescriptor,
                                       withReplyEvent reply: NSAppleEventDescriptor) {
         guard let text = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
-              let url = URL(string: text), url.scheme == "pulse" else { return }
+              let url = URL(string: text), url.scheme == "lobalt" else { return }
         handle(url)
     }
 
     private func handle(_ url: URL) {
-        // Both pulse://start and pulse:///start reach here as one or the other.
+        // Both lobalt://start and lobalt:///start reach here as one or the other.
         let action = (url.host?.isEmpty == false ? url.host! : url.lastPathComponent).lowercased()
         let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         func value(_ name: String) -> String? {

@@ -1,9 +1,9 @@
 import SwiftUI
 import AppKit
-import PulseKit
+import LobaltKit
 
 /// Renders the app's surfaces to PNGs without needing a display or any screen
-/// recording permission. Invoked with `Pulse --snapshot <directory>`; used to
+/// recording permission. Invoked with `Lobalt --snapshot <directory>`; used to
 /// review layout and the pulse treatment while developing.
 @MainActor
 enum Snapshot {
@@ -21,7 +21,7 @@ enum Snapshot {
     /// it back out as it exits, leaving a plist behind on every run.
     static func scratchState() -> AppState {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("pulse-scratch-\(UUID().uuidString).json")
+            .appendingPathComponent("lobalt-scratch-\(UUID().uuidString).json")
         return AppState(defaults: MemorySettingsStore(), storeURL: url)
     }
 
@@ -102,7 +102,7 @@ enum Snapshot {
 
     private static func write(_ view: some View, _ dir: URL, _ name: String) {
         let renderer = ImageRenderer(content: view
-            .environment(\.pulseSnapshotMode, true)
+            .environment(\.lobaltSnapshotMode, true)
             .preferredColorScheme(.dark))
         renderer.scale = 2
         guard let image = renderer.nsImage,

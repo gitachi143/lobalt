@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 import Observation
-import PulseKit
+import LobaltKit
 
 /// The always-there surface: a live countdown in the menu bar that reddens
 /// along with everything else on the minute.
@@ -70,7 +70,7 @@ final class MenuBarController {
         case .paused: symbol = "pause.circle"
         case .finished: symbol = "bell.fill"
         }
-        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Pulse")
+        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Lobalt")
         button.image?.isTemplate = true
 
         let base: NSColor = {
@@ -97,7 +97,7 @@ final class MenuBarController {
 
         if engine.phase == .idle {
             button.attributedTitle = NSAttributedString(string: "")
-            button.toolTip = "Pulse — no timer running"
+            button.toolTip = "Lobalt — no timer running"
         } else {
             button.attributedTitle = NSAttributedString(
                 string: " " + TimeFormat.compact(engine.remaining),
@@ -188,10 +188,10 @@ final class MenuBarController {
         }
 
         menu.addItem(.separator())
-        menu.addItem(item("Open Pulse", #selector(menuShow)))
+        menu.addItem(item("Open Lobalt", #selector(menuShow)))
         menu.addItem(item("Settings…", #selector(menuSettings)))
         menu.addItem(.separator())
-        menu.addItem(item("Quit Pulse", #selector(menuQuit)))
+        menu.addItem(item("Quit Lobalt", #selector(menuQuit)))
 
         statusItem.menu = menu
         statusItem.button?.performClick(nil)

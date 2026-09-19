@@ -435,7 +435,7 @@ public enum DurationParser {
         ["start", "a", "timer", "for"], ["start", "timer", "for"], ["set", "a", "timer"],
         ["give", "me"], ["i", "want", "to"], ["i", "need", "to"], ["i", "want"], ["i", "need"],
         ["let", "s", "do"], ["lets", "do"], ["let", "me"], ["make", "it"], ["count", "down"],
-        ["hey", "pulse"], ["can", "you"], ["could", "you"], ["start", "a"], ["put", "on"],
+        ["hey", "lobalt"], ["can", "you"], ["could", "you"], ["start", "a"], ["put", "on"],
         ["i", "m", "going", "to"], ["im", "going", "to"], ["going", "to"], ["time", "me"],
     ]
     private static let leadingWords: Set<String> = [

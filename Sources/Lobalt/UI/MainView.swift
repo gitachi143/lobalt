@@ -1,5 +1,5 @@
 import SwiftUI
-import PulseKit
+import LobaltKit
 
 struct MainView: View {
     @Environment(AppState.self) private var app
@@ -128,7 +128,7 @@ struct MainView: View {
                 .fill(app.statusColor)
                 .frame(width: 8, height: 8)
                 .shadow(color: app.statusColor.opacity(0.8), radius: 4)
-            Text("Pulse")
+            Text("Lobalt")
                 .font(Theme.label(15, weight: .semibold))
                 .foregroundStyle(Palette.primaryText)
 
@@ -221,7 +221,7 @@ private struct LabelField: View {
     var fontSize: CGFloat
     @State private var hovering = false
 
-    @Environment(\.pulseSnapshotMode) private var snapshotMode
+    @Environment(\.lobaltSnapshotMode) private var snapshotMode
 
     var body: some View {
         @Bindable var engine = app.engine
@@ -364,7 +364,7 @@ private struct QuickEntryField: View {
     @Environment(AppState.self) private var app
     @Binding var text: String
     @FocusState.Binding var focused: Bool
-    @Environment(\.pulseSnapshotMode) private var snapshotMode
+    @Environment(\.lobaltSnapshotMode) private var snapshotMode
 
     /// Live read-back so you can see it understood before hitting return.
     private var hint: String? {
@@ -556,7 +556,7 @@ struct VoiceButton: View {
 }
 
 /// Publishes the hosting `NSWindow` so the overlay can tell whether the timer
-/// is already in front, and so "Open Pulse" can bring it back.
+/// is already in front, and so "Open Lobalt" can bring it back.
 private struct KeyWindowAccessor: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let view = NSView()

@@ -4,7 +4,7 @@ import Foundation
 public enum TimeFormat {
 
     /// `25:00`, `1:05:00`, `+0:23`. Negative values render with a leading `+`
-    /// because in Pulse a negative remainder means "over budget", not "minus".
+    /// because in Lobalt a negative remainder means "over budget", not "minus".
     public static func clock(_ seconds: TimeInterval) -> String {
         let over = seconds < -0.0001
         // Round *up* so a timer set to 25:00 reads "25:00" for its whole first

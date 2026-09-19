@@ -1,5 +1,5 @@
 import SwiftUI
-import PulseKit
+import LobaltKit
 
 /// The popover behind the menu bar item — a full set of controls without
 /// having to open the window.

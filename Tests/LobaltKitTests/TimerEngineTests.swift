@@ -1,5 +1,5 @@
 import XCTest
-@testable import PulseKit
+@testable import LobaltKit
 
 final class TimerEngineTests: XCTestCase {
 
@@ -133,7 +133,7 @@ final class SessionStoreTests: XCTestCase {
 
     private func tempStore() -> SessionStore {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("pulse-test-\(UUID().uuidString).json")
+            .appendingPathComponent("lobalt-test-\(UUID().uuidString).json")
         return SessionStore(url: url)
     }
 
@@ -146,7 +146,7 @@ final class SessionStoreTests: XCTestCase {
 
     func testAddAndPersistRoundTrip() {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("pulse-test-\(UUID().uuidString).json")
+            .appendingPathComponent("lobalt-test-\(UUID().uuidString).json")
         let a = SessionStore(url: url)
         a.add(session(planned: 1500, actual: 1600))
         let b = SessionStore(url: url)
@@ -194,7 +194,7 @@ final class SessionStoreTests: XCTestCase {
 
     func testLimitTrimsOldest() {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("pulse-test-\(UUID().uuidString).json")
+            .appendingPathComponent("lobalt-test-\(UUID().uuidString).json")
         let s = SessionStore(url: url, limit: 3)
         for i in 0..<5 { s.add(session(label: "\(i)", planned: 60, actual: 60)) }
         XCTAssertEqual(s.sessions.count, 3)

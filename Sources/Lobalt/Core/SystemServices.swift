@@ -33,7 +33,7 @@ final class DisplayAwakeAssertion {
     private var assertionID: IOPMAssertionID = 0
     private var held = false
 
-    func setHeld(_ shouldHold: Bool, reason: String = "Pulse timer running") {
+    func setHeld(_ shouldHold: Bool, reason: String = "Lobalt timer running") {
         guard shouldHold != held else { return }
         if shouldHold {
             var id: IOPMAssertionID = 0
@@ -77,7 +77,7 @@ enum HotKeyAction: UInt32, CaseIterable {
         switch self {
         case .toggleTimer: return "Start / pause timer"
         case .voice: return "Speak a timer"
-        case .showWindow: return "Show Pulse"
+        case .showWindow: return "Show Lobalt"
         }
     }
     var shortcutText: String {
@@ -91,7 +91,7 @@ enum HotKeyAction: UInt32, CaseIterable {
 
 private var hotKeyHandlers: [UInt32: () -> Void] = [:]
 
-private func pulseHotKeyCallback(_ next: EventHandlerCallRef?,
+private func lobaltHotKeyCallback(_ next: EventHandlerCallRef?,
                                  _ event: EventRef?,
                                  _ userData: UnsafeMutableRawPointer?) -> OSStatus {
     var hkID = EventHotKeyID()
@@ -109,13 +109,13 @@ private func pulseHotKeyCallback(_ next: EventHandlerCallRef?,
 final class HotKeyCenter {
     private var refs: [UInt32: EventHotKeyRef] = [:]
     private var handlerRef: EventHandlerRef?
-    private let signature: OSType = 0x504C5345   // 'PLSE'
+    private let signature: OSType = 0x4C424C54   // 'LBLT'
 
     func install(_ bindings: [HotKeyAction: () -> Void]) {
         uninstall()
         var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard),
                                  eventKind: UInt32(kEventHotKeyPressed))
-        InstallEventHandler(GetApplicationEventTarget(), pulseHotKeyCallback, 1, &spec, nil, &handlerRef)
+        InstallEventHandler(GetApplicationEventTarget(), lobaltHotKeyCallback, 1, &spec, nil, &handlerRef)
 
         for (action, handler) in bindings {
             hotKeyHandlers[action.rawValue] = handler

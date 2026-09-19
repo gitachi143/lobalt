@@ -3,7 +3,7 @@ import Speech
 import AVFoundation
 import AppKit
 import Observation
-import PulseKit
+import LobaltKit
 
 /// Microphone → text → `VoiceIntent`.
 ///
@@ -64,13 +64,13 @@ final class SpeechController {
                     AVCaptureDevice.requestAccess(for: .audio) { granted in
                         DispatchQueue.main.async {
                             if !granted {
-                                self.state = .denied("Pulse needs microphone access.")
+                                self.state = .denied("Lobalt needs microphone access.")
                             }
                             done(granted)
                         }
                     }
                 case .denied, .restricted:
-                    self.state = .denied("Speech recognition is turned off for Pulse.")
+                    self.state = .denied("Speech recognition is turned off for Lobalt.")
                     done(false)
                 case .notDetermined:
                     done(false)

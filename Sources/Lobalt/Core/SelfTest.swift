@@ -1,9 +1,9 @@
 import AppKit
 import SwiftUI
-import PulseKit
+import LobaltKit
 import Speech
 
-/// Developer smoke test: `Pulse --selftest`.
+/// Developer smoke test: `Lobalt --selftest`.
 ///
 /// Exercises the parts that only exist at runtime — the floating panel's
 /// auto-sizing and placement, the menu bar item, the engine's ticking — and
@@ -30,7 +30,7 @@ enum SelfTest {
 
     static func run(state: AppState) -> Int {
         failures = 0
-        print("Pulse self-test")
+        print("Lobalt self-test")
 
         // --- Engine ------------------------------------------------------
         print("engine")
@@ -101,6 +101,10 @@ enum SelfTest {
         overlay.update()
         spin(0.5)
         check("hides once nothing is timing", !panel.isVisible)
+
+        // The app keeps the controller alive for the whole session; without
+        // this ARC can reclaim it as soon as the last call above returns.
+        withExtendedLifetime(overlay) {}
 
         // --- Window lifecycle --------------------------------------------
         print("window")

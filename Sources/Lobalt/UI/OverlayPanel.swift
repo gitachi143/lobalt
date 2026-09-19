@@ -1,9 +1,9 @@
 import AppKit
 import SwiftUI
-import PulseKit
+import LobaltKit
 
 /// Shared handle on the main timer window so the overlay can tell whether you
-/// are already looking at the timer, and so "Open Pulse" always has something
+/// are already looking at the timer, and so "Open Lobalt" always has something
 /// to bring back.
 final class WindowRegistry {
     static let shared = WindowRegistry()
@@ -181,9 +181,12 @@ final class OverlayController {
             NSAnimationContext.runAnimationGroup({ ctx in
                 ctx.duration = 0.16
                 panel.animator().alphaValue = 0
-            }, completionHandler: { [weak self] in
-                guard let self, !self.shown else { return }
-                self.panel.orderOut(nil)
+            }, completionHandler: { [weak self, panel] in
+                // The panel is captured strongly on purpose: if the controller
+                // has been torn down mid-fade, the overlay must still leave the
+                // screen rather than sitting there at zero alpha forever.
+                guard self?.shown != true else { return }
+                panel.orderOut(nil)
             })
         }
     }

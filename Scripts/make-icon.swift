@@ -1,5 +1,5 @@
 #!/usr/bin/env swift
-// Renders Pulse's app icon: a depleting mint ring with the minute pulse
+// Renders Lobalt's app icon: a depleting mint ring with the minute pulse
 // glowing red at its leading edge. No design assets to keep in the repo.
 
 import Foundation
@@ -7,7 +7,7 @@ import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
 
-let outputDir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "./Pulse.iconset"
+let outputDir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "./Lobalt.iconset"
 try? FileManager.default.createDirectory(atPath: outputDir, withIntermediateDirectories: true)
 
 func srgb(_ r: Double, _ g: Double, _ b: Double, _ a: Double = 1) -> CGColor {

@@ -1,5 +1,5 @@
 import SwiftUI
-import PulseKit
+import LobaltKit
 
 /// The corner pill: what you see while you're working in something else.
 ///
@@ -86,7 +86,7 @@ struct OverlayView: View {
                     .truncationMode(.tail)
                     .frame(maxWidth: 140 * scale, alignment: .leading)
             } else if engine.phase == .idle {
-                Text("Pulse")
+                Text("Lobalt")
                     .font(Theme.label(11 * scale))
                     .foregroundStyle(Palette.tertiaryText)
             }
@@ -114,7 +114,7 @@ struct OverlayView: View {
                 app.toggleVoice()
             }
 
-            pill("macwindow", "Open Pulse") { app.onShowMainWindow?() }
+            pill("macwindow", "Open Lobalt") { app.onShowMainWindow?() }
         }
     }
 

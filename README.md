@@ -1,16 +1,16 @@
-# Pulse
+# Lobalt
 
-A timeboxing timer for macOS. You give yourself a length of time, and Pulse
+A timeboxing timer for macOS. You give yourself a length of time, and Lobalt
 keeps that number in front of you — quietly — until it runs out.
 
-![Pulse, caught on the beat](docs/fullscreen-pulse.png)
+![Lobalt, caught on the beat](docs/fullscreen-pulse.png)
 
 ## The idea
 
 Most timers only speak up twice: when you start them and when they go off. In
 between you either stare at the clock or forget it exists.
 
-On every whole minute Pulse hits. The entire surface floods red in about
+On every whole minute Lobalt hits. The entire surface floods red in about
 forty milliseconds, the controls swell and pick up a red halo, and then it all
 cools back down over the next couple of seconds. The shape matters more than
 the colour: an instant attack, a hard drop off the peak, then a long afterglow.
@@ -25,14 +25,14 @@ It presses harder over the last five minutes, and harder still once you're past
 your estimate. Turn it down, or off, in Settings. The rest of the time it just
 sits there being a timer.
 
-![Pulse between beats](docs/fullscreen-calm.png)
+![Lobalt between beats](docs/fullscreen-calm.png)
 
 Full screen gives the ring the whole display, and the controls fade out after a
 few seconds until you move the mouse.
 
 ## Where it lives
 
-Whenever the Pulse window isn't the thing you're looking at, a small pill parks
+Whenever the Lobalt window isn't the thing you're looking at, a small pill parks
 itself in the corner of the screen. It floats above everything, including other
 apps in full screen, and never takes focus away from your work.
 
@@ -83,14 +83,14 @@ understood before you commit.
 
 ## Driving it from elsewhere
 
-Pulse registers a `pulse://` scheme, so Shortcuts, Raycast, a keyboard-macro
+Lobalt registers a `lobalt://` scheme, so Shortcuts, Raycast, a keyboard-macro
 app or a shell script can start timers:
 
 ```sh
-open "pulse://start?q=25m%20write%20the%20essay"   # anything the text field takes
-open "pulse://start?m=45"                          # or just minutes
-open "pulse://add?m=5"
-open "pulse://pause"    # also resume, toggle, stop, restart, show
+open "lobalt://start?q=25m%20write%20the%20essay"   # anything the text field takes
+open "lobalt://start?m=45"                          # or just minutes
+open "lobalt://add?m=5"
+open "lobalt://pause"    # also resume, toggle, stop, restart, show
 ```
 
 Transport only, deliberately: any web page can fire a URL scheme, so there is
@@ -101,12 +101,12 @@ no link here that opens the microphone or touches the filesystem.
 Requires macOS 14 or later.
 
 ```sh
-git clone https://github.com/gitachi143/pulse-timer.git
-cd pulse-timer
+git clone https://github.com/gitachi143/lobalt.git
+cd lobalt
 ./Scripts/build-app.sh --install
 ```
 
-That produces a universal (Apple silicon + Intel) `Pulse.app` and copies it to
+That produces a universal (Apple silicon + Intel) `Lobalt.app` and copies it to
 `/Applications`. Pass a directory to put it somewhere else
 (`--install ~/Desktop`), or leave off `--install` to just build into `./build`.
 
@@ -132,31 +132,31 @@ In the window: `Space` start/pause · `⌘D` speak · `⌘.` stop · `⌘R` run 
 ```sh
 swift build          # build
 swift test           # unit tests for the parser, timer maths and history
-./Scripts/build-app.sh   # assemble Pulse.app
+./Scripts/build-app.sh   # assemble Lobalt.app
 ```
 
 Two developer flags on the built binary, both of which run against throwaway
 preferences and a throwaway session log rather than your real ones:
 
 ```sh
-./.build/debug/Pulse --selftest         # runtime checks: panel placement, window
+./.build/debug/Lobalt --selftest         # runtime checks: panel placement, window
                                         # lifecycle, menu bar, ticking, parsing
-./.build/debug/Pulse --snapshot ./docs  # re-render the interface images
+./.build/debug/Lobalt --snapshot ./docs  # re-render the interface images
 ```
 
 Layout:
 
-- `Sources/PulseKit` — the parts with no UI in them: the natural-language
+- `Sources/LobaltKit` — the parts with no UI in them: the natural-language
   parser, the timer state machine, the session log. This is what the tests
   cover.
-- `Sources/Pulse` — the app: SwiftUI views, the floating panel, the menu bar
+- `Sources/Lobalt` — the app: SwiftUI views, the floating panel, the menu bar
   item, speech, global hot keys.
 
 The timer derives its remaining time from a wall-clock deadline rather than
 counting ticks, so it stays correct across sleep, app nap and a shut lid. Ticks
 only exist to refresh the display, and the tick rate follows what's actually
-visible — 60 Hz for the second and a half a pulse takes, and a lazy 0.2 s the
-rest of the time.
+visible — 60 Hz for the couple of seconds a pulse takes to hit and fade, and
+a lazy 0.2 s the rest of the time.
 
 ## Licence
 

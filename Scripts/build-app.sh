@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds Pulse.app — a real, double-clickable macOS bundle.
+# Builds Lobalt.app — a real, double-clickable macOS bundle.
 #
 #   ./Scripts/build-app.sh                    release build into ./build
 #   ./Scripts/build-app.sh --install          also copy it into /Applications
@@ -9,8 +9,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-APP_NAME="Pulse"
-BUNDLE_ID="com.gitachi.Pulse"
+APP_NAME="Lobalt"
+BUNDLE_ID="com.gitachi.Lobalt"
 VERSION="1.0.0"
 BUILD_NUMBER="1"
 OUT="$ROOT/build"
@@ -60,15 +60,15 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>NSSupportsAutomaticTermination</key><false/>
     <key>NSSupportsSuddenTermination</key><false/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Pulse listens when you press the microphone button so you can say how long you want for a task.</string>
+    <string>Lobalt listens when you press the microphone button so you can say how long you want for a task.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
-    <string>Pulse turns what you say into a timer. Recognition runs on this Mac whenever your hardware supports it.</string>
+    <string>Lobalt turns what you say into a timer. Recognition runs on this Mac whenever your hardware supports it.</string>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
             <key>CFBundleURLName</key><string>$BUNDLE_ID</string>
             <key>CFBundleURLSchemes</key>
-            <array><string>pulse</string></array>
+            <array><string>lobalt</string></array>
         </dict>
     </array>
 </dict>

@@ -1,5 +1,5 @@
 import XCTest
-@testable import PulseKit
+@testable import LobaltKit
 
 final class DurationParserTests: XCTestCase {
 

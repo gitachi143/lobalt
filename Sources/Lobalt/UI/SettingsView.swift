@@ -1,6 +1,6 @@
 import SwiftUI
 import ServiceManagement
-import PulseKit
+import LobaltKit
 
 struct SettingsView: View {
     var body: some View {
@@ -187,7 +187,7 @@ private struct OverlaySettings: View {
                 .disabled(settings.overlayMode == .never)
                 .onChange(of: settings.overlayCorner) { _, _ in
                     settings.overlayOrigin = nil
-                    NotificationCenter.default.post(name: .pulseOverlayLayoutChanged, object: nil)
+                    NotificationCenter.default.post(name: .lobaltOverlayLayoutChanged, object: nil)
                 }
 
                 HStack {
@@ -202,13 +202,13 @@ private struct OverlaySettings: View {
 
                 Button("Reset position") {
                     settings.overlayOrigin = nil
-                    NotificationCenter.default.post(name: .pulseOverlayLayoutChanged, object: nil)
+                    NotificationCenter.default.post(name: .lobaltOverlayLayoutChanged, object: nil)
                 }
                 .disabled(settings.overlayOrigin == nil)
             } header: {
                 Text("Corner overlay")
             } footer: {
-                Text("The overlay appears whenever the Pulse window isn't the one you're looking at, and floats above other apps — including full-screen ones. Drag it anywhere you like.")
+                Text("The overlay appears whenever the Lobalt window isn't the one you're looking at, and floats above other apps — including full-screen ones. Drag it anywhere you like.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -228,7 +228,7 @@ private struct ShortcutSettings: View {
             Section {
                 Toggle("Enable system-wide shortcuts", isOn: $settings.hotkeysEnabled)
                     .onChange(of: settings.hotkeysEnabled) { _, _ in
-                        NotificationCenter.default.post(name: .pulseHotKeysChanged, object: nil)
+                        NotificationCenter.default.post(name: .lobaltHotKeysChanged, object: nil)
                     }
                 ForEach(HotKeyAction.allCases, id: \.rawValue) { action in
                     LabeledContent(action.displayName) {
@@ -251,7 +251,7 @@ private struct ShortcutSettings: View {
                 LabeledContent("Run again") { key("⌘R") }
                 LabeledContent("Add five minutes") { key("⌘⇧+") }
                 LabeledContent("Full screen") { key("⌃⌘F") }
-            } header: { Text("In the Pulse window") }
+            } header: { Text("In the Lobalt window") }
         }
         .formStyle(.grouped)
     }
@@ -262,6 +262,6 @@ private struct ShortcutSettings: View {
 }
 
 extension Notification.Name {
-    static let pulseOverlayLayoutChanged = Notification.Name("PulseOverlayLayoutChanged")
-    static let pulseHotKeysChanged = Notification.Name("PulseHotKeysChanged")
+    static let lobaltOverlayLayoutChanged = Notification.Name("LobaltOverlayLayoutChanged")
+    static let lobaltHotKeysChanged = Notification.Name("LobaltHotKeysChanged")
 }

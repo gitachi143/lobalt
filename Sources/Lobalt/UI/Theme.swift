@@ -1,5 +1,5 @@
 import SwiftUI
-import PulseKit
+import LobaltKit
 
 /// Dark-first palette. The timer surfaces stay dark regardless of system
 /// appearance so the red pulse reads identically every time.
@@ -123,7 +123,7 @@ enum Theme {
 private struct SnapshotModeKey: EnvironmentKey { static let defaultValue = false }
 
 extension EnvironmentValues {
-    var pulseSnapshotMode: Bool {
+    var lobaltSnapshotMode: Bool {
         get { self[SnapshotModeKey.self] }
         set { self[SnapshotModeKey.self] = newValue }
     }

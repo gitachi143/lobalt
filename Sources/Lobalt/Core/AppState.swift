@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 import Observation
-import PulseKit
+import LobaltKit
 
 /// Single place the UI talks to. Owns the engine and every side effect that
 /// hangs off it — sound, notifications, history, sleep prevention, voice.
