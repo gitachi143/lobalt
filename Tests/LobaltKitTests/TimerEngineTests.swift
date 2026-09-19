@@ -82,13 +82,25 @@ final class TimerEngineTests: XCTestCase {
         XCTAssertLessThanOrEqual(e.progress, 1)
     }
 
-    func testShortSessionsAreNotLogged() {
+    func testInstantMisfiresAreNotLogged() {
         let e = TimerEngine()
         var logged: [Session] = []
         e.onSessionEnd = { logged.append($0) }
         e.start(seconds: 600, label: "Blip")
         e.stop()
-        XCTAssertTrue(logged.isEmpty, "a two-second start is a misfire, not a session")
+        XCTAssertTrue(logged.isEmpty, "a double-tapped preset is not a session")
+    }
+
+    func testSessionCancelledAfterASecondIsStillLogged() {
+        let e = TimerEngine()
+        var logged: [Session] = []
+        e.onSessionEnd = { logged.append($0) }
+        e.start(seconds: 600, label: "Changed my mind")
+        Thread.sleep(forTimeInterval: TimerEngine.minimumLoggedDuration + 0.2)
+        e.stop()
+        XCTAssertEqual(logged.count, 1, "a short cancel still belongs in the log")
+        XCTAssertEqual(logged.first?.label, "Changed my mind")
+        XCTAssertEqual(logged.first?.completed, false, "it never reached the bell")
     }
 
     func testFinishFiresAndEntersOvertime() {
@@ -259,11 +271,11 @@ final class RingFractionTests: XCTestCase {
         e.onFinish = { done.fulfill() }
         e.start(seconds: 1)
         wait(for: [done], timeout: 3)
-        // Push past the 20s floor for logging by rewriting nothing — instead
-        // confirm the short one is skipped, then verify the completed flag via
-        // a session that does qualify.
-        RunLoop.current.run(until: Date().addingTimeInterval(0.3))
-        e.start(seconds: 60)
-        XCTAssertTrue(logged.isEmpty, "a one-second timer is below the logging floor")
+        RunLoop.current.run(until: Date().addingTimeInterval(0.4))
+
+        e.start(seconds: 60)        // replaced while still running into overtime
+        XCTAssertEqual(logged.count, 1)
+        XCTAssertEqual(logged.first?.completed, true,
+                       "it ran past the bell, so replacing it isn't abandoning it")
     }
 }

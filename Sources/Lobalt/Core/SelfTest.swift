@@ -24,8 +24,23 @@ enum SelfTest {
         }
     }
 
+    /// Runs the main run loop for a stretch of wall-clock time.
+    ///
+    /// `RunLoop.run(until:)` on its own can return early when nothing is
+    /// attached, and under load it can be starved of the engine's tick, which
+    /// made timing checks fail for reasons that had nothing to do with the
+    /// code under test. Keeping a timer attached and looping to the deadline
+    /// makes it dependable.
     private static func spin(_ seconds: TimeInterval) {
-        RunLoop.current.run(until: Date().addingTimeInterval(seconds))
+        let deadline = Date().addingTimeInterval(seconds)
+        while Date() < deadline {
+            // Short slices, looping until the wall clock says we're done.
+            // `run(until:)` can return early when the loop has nothing to do,
+            // which used to cut timing checks short under load.
+            let slice = min(deadline, Date().addingTimeInterval(0.05))
+            RunLoop.current.run(until: slice)
+            if Date() < slice { Thread.sleep(forTimeInterval: 0.005) }
+        }
     }
 
     static func run(state: AppState) -> Int {
@@ -104,6 +119,7 @@ enum SelfTest {
         overlay.update()
         spin(0.5)
         check("hides once nothing is timing", !panel.isVisible)
+        check("and is fully faded out", panel.alphaValue < 0.01)
 
         // The app keeps the controller alive for the whole session; without
         // this ARC can reclaim it as soon as the last call above returns.
@@ -162,12 +178,14 @@ enum SelfTest {
 
         // --- Parsing through the app -------------------------------------
         print("commands")
-        state.submitQuickEntry("45m review the deck")
+        state.draftEntry = "45m review the deck"
+        state.submitQuickEntry()
         check("typed command sets the duration", Int(state.engine.plannedDuration) == 2700,
               "\(Int(state.engine.plannedDuration))s")
         check("typed command sets the label", state.engine.label == "Review the deck",
               "“\(state.engine.label)”")
-        state.submitQuickEntry("pause")
+        state.draftEntry = "pause"
+        state.submitQuickEntry()
         check("typed transport command works", state.engine.phase == .paused)
 
         // --- Naming ------------------------------------------------------
@@ -175,12 +193,29 @@ enum SelfTest {
         // length then name it.
         print("naming")
         state.engine.stop()
+        state.draftEntry = ""
         state.engine.label = "Write the essay"
         state.startPreset(minutes: 25)
         check("a name typed before picking a duration survives",
               state.engine.label == "Write the essay", "got “\(state.engine.label)”")
         check("and the duration still applies", Int(state.engine.plannedDuration) == 1500)
 
+        // The other way round: type into the entry field, then click a length.
+        state.engine.stop()
+        state.draftEntry = "draft the brief"
+        state.startPreset(minutes: 10)
+        check("text left in the entry field becomes the name",
+              state.engine.label == "Draft the brief", "got “\(state.engine.label)”")
+        check("and the field is emptied", state.draftEntry.isEmpty)
+
+        state.engine.stop()
+        state.draftEntry = "15m ship the thing"
+        state.startPreset(minutes: 5)
+        check("a duration typed alongside a name is dropped in favour of the click",
+              state.engine.label == "Ship the thing" && Int(state.engine.plannedDuration) == 300,
+              "“\(state.engine.label)” / \(Int(state.engine.plannedDuration))s")
+
+        state.engine.stop()
         state.engine.label = "Renamed while running"
         check("renaming a running timer sticks", state.engine.label == "Renamed while running")
         state.addMinutes(5)

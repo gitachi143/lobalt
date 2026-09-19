@@ -112,6 +112,8 @@ final class OverlayController {
 
     private var shown = false
     private var movingProgrammatically = false
+    private var pendingHide: DispatchWorkItem?
+    private let fadeOut: TimeInterval = 0.16
     private var poll: Timer?
 
     init(app: AppState) {
@@ -184,6 +186,9 @@ final class OverlayController {
     private func setVisible(_ visible: Bool) {
         guard visible != shown else { return }
         shown = visible
+        pendingHide?.cancel()
+        pendingHide = nil
+
         if visible {
             anchor()
             panel.orderFrontRegardless()
@@ -192,16 +197,22 @@ final class OverlayController {
                 panel.animator().alphaValue = 1
             }
         } else {
-            NSAnimationContext.runAnimationGroup({ ctx in
-                ctx.duration = 0.16
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = fadeOut
                 panel.animator().alphaValue = 0
-            }, completionHandler: { [weak self, panel] in
-                // The panel is captured strongly on purpose: if the controller
-                // has been torn down mid-fade, the overlay must still leave the
-                // screen rather than sitting there at zero alpha forever.
+            }
+            // Ordering out is scheduled rather than hung off the animation's
+            // completion handler. AppKit skips that handler whenever it
+            // decides the alpha change needs no animating, which would leave
+            // an invisible panel on screen quietly eating clicks in the
+            // corner. The panel is captured strongly so this still runs if
+            // the controller goes away mid-fade.
+            let work = DispatchWorkItem { [weak self, panel] in
                 guard self?.shown != true else { return }
                 panel.orderOut(nil)
-            })
+            }
+            pendingHide = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + fadeOut + 0.02, execute: work)
         }
     }
 
@@ -269,6 +280,7 @@ final class OverlayController {
     var debugPanel: OverlayPanel { panel }
 
     deinit {
+        pendingHide?.cancel()
         poll?.invalidate()
         NotificationCenter.default.removeObserver(self)
         NSWorkspace.shared.notificationCenter.removeObserver(self)

@@ -6,12 +6,12 @@ import LobaltKit
 struct MenuPanelView: View {
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var quickEntry = ""
     @FocusState private var quickFocused: Bool
 
     private var engine: TimerEngine { app.engine }
 
     var body: some View {
+        @Bindable var app = app
         let pulse = app.pulseNow()
         let color = Theme.timeColor(remaining: engine.remaining, planned: engine.plannedDuration)
 
@@ -70,14 +70,11 @@ struct MenuPanelView: View {
                 }
             }
 
-            TextField("25m write the essay", text: $quickEntry)
+            TextField("25m write the essay", text: $app.draftEntry)
                 .textFieldStyle(.roundedBorder)
                 .font(Theme.label(12))
                 .focused($quickFocused)
-                .onSubmit {
-                    app.submitQuickEntry(quickEntry)
-                    quickEntry = ""
-                }
+                .onSubmit { app.submitQuickEntry() }
 
             HStack(spacing: 6) {
                 ForEach(app.settings.presets, id: \.self) { minutes in

@@ -71,8 +71,13 @@ understood before you commit.
 ## Starting one
 
 Preset chips run from one minute upward, and a **custom** chip jumps to the
-type-in field for anything else. Name a session by clicking the line inside the
-ring — before you pick a length or after it has started, either works.
+type-in field for anything else.
+
+Anything left in that field becomes the name. Type *draft the brief*, click
+**25**, and you get a twenty-five minute timer called "Draft the brief" — no
+need to press return first. Type *25m draft the brief* and press return and
+you get the same thing. You can also name it from the line inside the ring, at
+any point, including while it's running.
 
 ## The rest of it
 
@@ -80,10 +85,13 @@ ring — before you pick a length or after it has started, either works.
   you ran eleven minutes over instead of guessing. The ring refills as the
   overrun accrues — a full second lap means you took twice as long as you gave
   yourself.
-- **Learns how you estimate.** Every session is logged, and the history window
-  tells you whether you habitually run over or under. Double-click any past
-  name to change it, for when you started a timer in a hurry and only worked
-  out what it was afterwards.
+- **Keeps the log under the timer.** Scroll down in the window for every past
+  session, grouped by day, with whether each one *finished*, ran over, came in
+  under, or was *cancelled*. Even one you called off after two seconds shows
+  up. Double-click any name to change it after the fact.
+  ![History](docs/history.png)
+- **Learns how you estimate.** It tells you whether you habitually run over or
+  under, per day and all time.
   ![Overtime](docs/main-overtime.png)
 - **Menu bar countdown**, with a popover holding the full set of controls.
   ![Menu bar popover](docs/menu-panel.png)

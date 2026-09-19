@@ -5,12 +5,11 @@ struct MainView: View {
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @Environment(\.openWindow) private var openWindow
-    @State private var quickEntry = ""
     @State private var chromeVisible = true
     @State private var chromeTimer: Timer?
     @State private var isFullScreen = false
     @State private var controlsHovered = false
+    @Environment(\.lobaltSnapshotMode) private var snapshotMode
     @Environment(\.lobaltSnapshotFullScreen) private var forcedFullScreen
     @Environment(\.lobaltSnapshotHoverControls) private var forcedHover
 
@@ -65,9 +64,30 @@ struct MainView: View {
 
     // MARK: - Layouts
 
-    /// Normal window: everything stacked, the ring taking what's left over.
+    /// Normal window: the timer fills the view, with history one scroll below
+    /// it. A separate window for the log meant remembering it existed.
     private func windowedLayout(geo: GeometryProxy, compact: Bool,
                                 ringSize: CGFloat, pulse: Double) -> some View {
+        Group {
+            if snapshotMode {
+                // ImageRenderer can't draw the contents of a ScrollView, so
+                // documentation images render the page on its own.
+                timerPage(geo: geo, compact: compact, ringSize: ringSize, pulse: pulse)
+            } else {
+                ScrollView(.vertical) {
+                    VStack(spacing: 0) {
+                        timerPage(geo: geo, compact: compact, ringSize: ringSize, pulse: pulse)
+                            .frame(height: geo.size.height)
+                        HistorySection()
+                    }
+                }
+                .scrollIndicators(.never)
+            }
+        }
+    }
+
+    private func timerPage(geo: GeometryProxy, compact: Bool,
+                           ringSize: CGFloat, pulse: Double) -> some View {
         VStack(spacing: 0) {
             header
                 .opacity(chromeVisible ? 1 : 0)
@@ -88,7 +108,7 @@ struct MainView: View {
                     PresetRow(quickFocused: $quickFocused)
                 }
                 if !compact {
-                    QuickEntryField(text: $quickEntry, focused: $quickFocused)
+                    QuickEntryField(focused: $quickFocused)
                 }
                 MessageLine()
             }
@@ -96,9 +116,15 @@ struct MainView: View {
             .allowsHitTesting(chromeVisible)
 
             if !compact {
-                StatsFooter()
-                    .opacity(chromeVisible ? 0.85 : 0)
-                    .padding(.top, 10)
+                VStack(spacing: 3) {
+                    StatsFooter()
+                    // Quiet hint that the log is a scroll away.
+                    Image(systemName: "chevron.compact.down")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Palette.tertiaryText)
+                }
+                .opacity(chromeVisible ? 0.85 : 0)
+                .padding(.top, 8)
             }
         }
         .padding(.horizontal, compact ? 16 : 28)
@@ -147,7 +173,7 @@ struct MainView: View {
                 if engine.phase == .idle {
                     PresetRow(quickFocused: $quickFocused, scale: controlsExpanded ? 1.3 : 1.1)
                 }
-                QuickEntryField(text: $quickEntry, focused: $quickFocused)
+                QuickEntryField(focused: $quickFocused)
                     .frame(width: 260)
             }
 
@@ -221,10 +247,6 @@ struct MainView: View {
 
             Spacer()
 
-            RoundIconButton(systemName: "clock.arrow.circlepath", diameter: 28,
-                            tint: Palette.secondaryText, help: "History") {
-                openWindow(id: "history")
-            }
             RoundIconButton(systemName: "gearshape", diameter: 28,
                             tint: Palette.secondaryText, help: "Settings") {
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
@@ -438,7 +460,7 @@ private struct PresetRow: View {
     var scale: CGFloat = 1
 
     var body: some View {
-        HStack(spacing: 6 * scale) {
+        HStack(spacing: 5 * scale) {
             ForEach(app.settings.presets, id: \.self) { minutes in
                 chip(String(minutes), help: "Start a \(minutes) minute timer") {
                     app.startPreset(minutes: minutes)
@@ -453,10 +475,12 @@ private struct PresetRow: View {
     private func chip(_ text: String, help: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(text)
-                .font(Theme.digits(13 * scale, weight: .medium))
+                .font(Theme.digits(12.5 * scale, weight: .medium))
                 .foregroundStyle(Palette.secondaryText)
-                .frame(minWidth: 28 * scale)
-                .padding(.horizontal, 6 * scale)
+                .lineLimit(1)
+                .fixedSize()
+                .frame(minWidth: 22 * scale)
+                .padding(.horizontal, 5 * scale)
                 .padding(.vertical, 6 * scale)
                 .background(
                     RoundedRectangle(cornerRadius: 8 * scale, style: .continuous)
@@ -472,9 +496,10 @@ private struct PresetRow: View {
 
 private struct QuickEntryField: View {
     @Environment(AppState.self) private var app
-    @Binding var text: String
     @FocusState.Binding var focused: Bool
     @Environment(\.lobaltSnapshotMode) private var snapshotMode
+
+    private var text: String { app.draftEntry }
 
     /// Live read-back so you can see it understood before hitting return.
     private var hint: String? {
@@ -494,26 +519,24 @@ private struct QuickEntryField: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        @Bindable var app = app
+        return HStack(spacing: 8) {
             Image(systemName: "text.cursor")
                 .font(.system(size: 11))
                 .foregroundStyle(Palette.tertiaryText)
 
             if snapshotMode {
-                Text(text.isEmpty ? "25m write the essay" : text)
+                Text(text.isEmpty ? "name it, or 25m write the essay" : text)
                     .font(Theme.label(13))
                     .foregroundStyle(text.isEmpty ? Palette.tertiaryText : Palette.primaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                TextField("25m write the essay", text: $text)
+                TextField("name it, or 25m write the essay", text: $app.draftEntry)
                     .textFieldStyle(.plain)
                     .font(Theme.label(13))
                     .foregroundStyle(Palette.primaryText)
                     .focused($focused)
-                    .onSubmit {
-                        app.submitQuickEntry(text)
-                        text = ""
-                    }
+                    .onSubmit { app.submitQuickEntry() }
             }
 
             if let hint {

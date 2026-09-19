@@ -15,12 +15,6 @@ struct LobaltApp: App {
         .windowResizability(.contentMinSize)
         .commands { TimerCommands(state: delegate.state) }
 
-        Window("History", id: "history") {
-            HistoryView()
-                .environment(delegate.state)
-        }
-        .defaultSize(width: 540, height: 480)
-
         Settings {
             SettingsView()
                 .environment(delegate.state)
@@ -177,7 +171,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "start":
             // Accepts anything the quick-entry field accepts.
             if let q = value("q") ?? value("t"), !q.isEmpty {
-                state.submitQuickEntry(q)
+                state.draftEntry = q
+                state.submitQuickEntry()
             } else if let m = value("m").flatMap(Int.init) {
                 state.startPreset(minutes: m)
             } else {

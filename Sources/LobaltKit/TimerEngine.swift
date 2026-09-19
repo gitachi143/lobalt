@@ -276,11 +276,15 @@ public final class TimerEngine {
 
     // MARK: - History
 
+    /// Below this a "session" is a misfire — a double-tapped preset, not a
+    /// decision. Deliberately tiny: a timer you thought better of after two
+    /// seconds is still something worth seeing in the log.
+    public static let minimumLoggedDuration: TimeInterval = 1
+
     private func recordSessionIfWorthKeeping(completed: Bool) {
         guard let startedAt, let cb = onSessionEnd else { return }
         let actual = Date().timeIntervalSince(startedAt)
-        // Ignore accidental starts — a few seconds isn't a session.
-        guard actual >= 20 else { self.startedAt = nil; return }
+        guard actual >= Self.minimumLoggedDuration else { self.startedAt = nil; return }
         cb(Session(id: UUID(),
                    label: label.isEmpty ? "Untitled" : label,
                    planned: plannedDuration,

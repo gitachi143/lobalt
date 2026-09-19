@@ -13,6 +13,10 @@ final class AppState {
     let settings: AppSettings
     let speech = SpeechController()
 
+    /// Whatever is sitting in the type-in field, un-submitted. Owned here so
+    /// that picking a duration can claim it as the session's name.
+    var draftEntry: String = ""
+
     /// Transient confirmation line shown after a voice or quick-entry command.
     private(set) var echo: String?
     /// Transient problem line ("didn't catch a duration").
@@ -60,15 +64,39 @@ final class AppState {
 
     func start(seconds: Int, label: String?) {
         syncSettings()
-        engine.start(seconds: seconds, label: label ?? engine.label)
+        // Text left in the entry field is the name you meant to give this —
+        // expecting people to press return before clicking a duration is not
+        // a reasonable thing to ask.
+        let resolved = label ?? claimDraftAsLabel()
+        engine.start(seconds: seconds, label: resolved)
         settings.lastDuration = seconds
         awake.setHeld(settings.keepDisplayAwake)
         var line = "Started \(TimeFormat.humane(TimeInterval(seconds)))"
-        if let label, !label.isEmpty { line += " · \(label)" }
+        if !engine.label.isEmpty { line += " · \(engine.label)" }
         show(echo: line)
     }
 
     func startPreset(minutes: Int) { start(seconds: minutes * 60, label: nil) }
+
+    /// Takes the un-submitted entry text and turns it into a name, emptying
+    /// the field. Returns nil when there was nothing nameable in it.
+    private func claimDraftAsLabel() -> String? {
+        let text = draftEntry.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return nil }
+        draftEntry = ""
+        switch DurationParser.intent(text) {
+        case .start(_, let label):
+            return label                       // "25m write essay" -> "Write essay"
+        case .unrecognized:
+            return AppState.sentenceCased(text)   // plain words -> all of it
+        default:
+            return nil                         // "pause", "+5" — not a name
+        }
+    }
+
+    static func sentenceCased(_ text: String) -> String {
+        text.prefix(1).uppercased() + text.dropFirst()
+    }
 
     func toggle() {
         engine.toggle()
@@ -120,10 +148,20 @@ final class AppState {
         }
     }
 
-    func submitQuickEntry(_ text: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        handle(DurationParser.intent(trimmed), source: trimmed)
+    func submitQuickEntry() {
+        let text = draftEntry.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        draftEntry = ""
+
+        let intent = DurationParser.intent(text)
+        if case .unrecognized = intent {
+            // Words with no duration in them, typed deliberately, are a name
+            // rather than a command that failed.
+            engine.label = AppState.sentenceCased(text)
+            show(echo: "Named “\(engine.label)”")
+            return
+        }
+        handle(intent, source: text)
     }
 
     // MARK: - Finishing

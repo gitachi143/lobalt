@@ -38,6 +38,7 @@ enum Snapshot {
             let sample: [(String, Double, Double, Bool)] = [
                 ("Inbox and triage", 900, 870, true),
                 ("Write the launch post", 1500, 1730, true),
+                ("Untitled", 300, 4, false),          // thought better of it
                 ("Review the parser PR", 1800, 1680, true),
                 ("Standup notes", 600, 640, true),
             ]
@@ -51,25 +52,30 @@ enum Snapshot {
             }
         }
 
-        // 1 — idle
+        // 1 — the log that sits under the timer, before this run's own
+        // throwaway timers land in it
+        write(HistorySection().environment(state).frame(width: 470).background(Palette.canvas),
+              dir, "history")
+
+        // 2 — idle
         engine.stop()
         engine.preset(seconds: 25 * 60)
         write(MainView().environment(state).frame(width: 470, height: 600), dir, "main-idle")
 
-        // 2 — running, part-way through, caught mid-pulse
+        // 3 — running, part-way through, caught mid-pulse
         engine.start(seconds: 25 * 60, label: "Write the launch post")
         engine.triggerPulse(strength: 0.75)
         holdUntilPeak()
         write(MainView().environment(state).frame(width: 470, height: 600), dir, "main-pulse")
 
-        // 3 — the same moment in the corner overlay
+        // 4 — the same moment in the corner overlay
         write(OverlayView().environment(state), dir, "overlay-pulse")
 
-        // 4 — overlay at rest
+        // 5 — overlay at rest
         engine.start(seconds: 25 * 60, label: "Write the launch post")
         write(OverlayView().environment(state), dir, "overlay-calm")
 
-        // 5 — the full-screen layout, caught on the beat
+        // 6 — the full-screen layout, caught on the beat
         func fullScreen(hovering: Bool) -> some View {
             MainView()
                 .environment(state)
@@ -91,10 +97,10 @@ enum Snapshot {
         engine.preset(seconds: 25 * 60)
         write(fullScreen(hovering: true), dir, "fullscreen-idle-hover")
 
-        // 6 — menu bar popover
+        // 7 — menu bar popover
         write(MenuPanelView().environment(state), dir, "menu-panel")
 
-        // 7 — past the estimate
+        // 8 — past the estimate
         engine.start(seconds: 1, label: "Review the PR")
         Thread.sleep(forTimeInterval: 1.4)
         engine.refresh()
@@ -103,7 +109,6 @@ enum Snapshot {
         write(MainView().environment(state).frame(width: 470, height: 600), dir, "main-overtime")
         write(OverlayView().environment(state), dir, "overlay-overtime")
 
-        engine.stop()
         print("snapshots written to \(dir.path)")
     }
 
