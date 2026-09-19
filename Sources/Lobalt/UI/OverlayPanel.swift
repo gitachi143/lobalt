@@ -2,6 +2,20 @@ import AppKit
 import SwiftUI
 import LobaltKit
 
+/// Geometry shared between the overlay's SwiftUI content and the panel that
+/// hosts it. They have to agree: the panel is sized from the content, so the
+/// transparent slack the content reserves has to be subtracted back out when
+/// the panel is anchored, or the pill drifts away from the corner.
+enum OverlayMetrics {
+    /// Transparent margin around the pill, leaving room for its shadow and for
+    /// the swell on each minute pulse without either being clipped.
+    static let bleed: CGFloat = 22
+    /// The gap you actually see between the pill and the edge of the screen.
+    static let edgeGap: CGFloat = 12
+    /// How much the pill grows at the peak of a pulse.
+    static let pulseGrowth: Double = 0.10
+}
+
 /// Shared handle on the main timer window so the overlay can tell whether you
 /// are already looking at the timer, and so "Open Lobalt" always has something
 /// to bring back.
@@ -217,7 +231,9 @@ final class OverlayController {
         guard let screen = targetScreen() else { return }
         let size = panel.frame.size
         let visible = screen.visibleFrame
-        let margin: CGFloat = 2        // the pill itself already insets 10pt
+        // Negative, because the content reserves `bleed` of transparent space
+        // that shouldn't count towards the visible gap.
+        let margin = OverlayMetrics.edgeGap - OverlayMetrics.bleed
 
         var origin: CGPoint
         if let saved = app.settings.overlayOrigin {
@@ -238,9 +254,11 @@ final class OverlayController {
             }
         }
 
-        // Never let it wander off the edge of a display.
-        origin.x = min(max(origin.x, visible.minX - 8), visible.maxX - size.width + 8)
-        origin.y = min(max(origin.y, visible.minY - 8), visible.maxY - size.height + 8)
+        // Never let it wander off the edge of a display. The allowance matches
+        // the transparent bleed, so clamping doesn't claw back the gap above.
+        let slack = OverlayMetrics.bleed
+        origin.x = min(max(origin.x, visible.minX - slack), visible.maxX - size.width + slack)
+        origin.y = min(max(origin.y, visible.minY - slack), visible.maxY - size.height + slack)
 
         movingProgrammatically = true
         panel.setFrameOrigin(origin)

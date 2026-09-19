@@ -11,8 +11,9 @@ Most timers only speak up twice: when you start them and when they go off. In
 between you either stare at the clock or forget it exists.
 
 On every whole minute Lobalt hits. The entire surface floods red in about
-forty milliseconds, the controls swell and pick up a red halo, and then it all
-cools back down over the next couple of seconds. The shape matters more than
+forty milliseconds, the controls swell and pick up a red halo, the corner
+overlay grows by a tenth, and then it all cools back down over the next couple
+of seconds. The shape matters more than
 the colour: an instant attack, a hard drop off the peak, then a long afterglow.
 A symmetrical swell would read as a slow throb, and a plain fade would be gone
 before you had looked up.

@@ -49,8 +49,9 @@ struct OverlayView: View {
         .clipShape(RoundedRectangle(cornerRadius: 14 * scale, style: .continuous))
         .shadow(color: .black.opacity(0.45), radius: 14, y: 6)
         .shadow(color: Palette.pulse.opacity(pulse * 0.5), radius: 18)
-        .scaleEffect(1 + (reduceMotion ? 0 : pulse * 0.02))
-        .padding(10)                                  // room for the shadow
+        // The whole box swells on the beat and settles back as it cools.
+        .scaleEffect(1 + (reduceMotion ? 0 : pulse * OverlayMetrics.pulseGrowth))
+        .padding(OverlayMetrics.bleed)                // room for shadow + swell
         .fixedSize()
         .onHover { hovering = $0 }
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: expanded)

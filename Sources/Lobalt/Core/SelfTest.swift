@@ -88,13 +88,16 @@ enum SelfTest {
         if let screen = NSScreen.main {
             let v = screen.visibleFrame
             let f = panel.frame
+            // The panel frame includes the transparent bleed, so it legitimately
+            // overhangs the screen edge by that much.
+            let slack = OverlayMetrics.bleed
             check("sits inside the visible screen area",
-                  f.maxX <= v.maxX + 12 && f.minX >= v.minX - 12
-                  && f.maxY <= v.maxY + 12 && f.minY >= v.minY - 12,
+                  f.maxX <= v.maxX + slack && f.minX >= v.minX - slack
+                  && f.maxY <= v.maxY + slack && f.minY >= v.minY - slack,
                   "panel \(rect(f)) vs screen \(rect(v))")
             check("anchors to the top right by default",
-                  abs(f.maxX - v.maxX) < 24 && abs(f.maxY - v.maxY) < 24,
-                  "offset x \(Int(v.maxX - f.maxX)), y \(Int(v.maxY - f.maxY))")
+                  abs(f.maxX - slack - v.maxX) < 24 && abs(f.maxY - slack - v.maxY) < 24,
+                  "visible pill inset x \(Int(v.maxX - (f.maxX - slack))), y \(Int(v.maxY - (f.maxY - slack)))")
         }
 
         state.engine.stop()
